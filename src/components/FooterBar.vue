@@ -32,6 +32,7 @@ const props = withDefaults(defineProps<{
   justify-content: space-between;
   align-items: center;
   padding: 0 4px;
+  margin-top: auto;
 }
 
 .status-container {

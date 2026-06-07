@@ -112,29 +112,39 @@ const getPanelWidth = (tab: string): number => {
  * 初始化：从数据库加载最新一条笔记
  */
 onMounted(async () => {
-  const savedNotes = await api.listNotes()
-  if (savedNotes.length > 0) {
-    notes.value = [savedNotes[0]]
-    activeNoteId.value = savedNotes[0].id
-  } else {
+  try {
+    const savedNotes = await api.listNotes()
+    if (savedNotes.length > 0) {
+      notes.value = [savedNotes[0]]
+      activeNoteId.value = savedNotes[0].id
+    } else {
+      addNote()
+    }
+  } catch (e) {
+    console.error('Failed to load notes:', e)
     addNote()
   }
 
   // 加载快捷键设置
-  const settings = await api.getSettings()
-  if (settings.theme) {
-    theme.value = settings.theme
-  }
+  let settings: Record<string, string> = {}
+  try {
+    settings = await api.getSettings()
+    if (settings.theme) {
+      theme.value = settings.theme
+    }
 
-  // 加载主题色设置
-  if (settings.accentColor) {
-    accentColor.value = settings.accentColor
-  }
-  applyAccentColor(accentColor.value)
+    // 加载主题色设置
+    if (settings.accentColor) {
+      accentColor.value = settings.accentColor
+    }
+    applyAccentColor(accentColor.value)
 
-  // 加载语言设置
-  if (settings.language) {
-    setLanguage(settings.language as Language)
+    // 加载语言设置
+    if (settings.language) {
+      setLanguage(settings.language as Language)
+    }
+  } catch (e) {
+    console.error('Failed to load settings:', e)
   }
 
   // 加载关闭动作设置
@@ -700,8 +710,8 @@ watch(theme, (newTheme) => {
           :key="activeNoteId"
           ref="editorRef"
           :note-id="activeNoteId"
-          :title="activeNote.title"
-          :initial-content="activeNote.content"
+          :title="activeNote?.title || t('editor.untitled')"
+          :initial-content="activeNote?.content || ''"
           :shortcut-delete-line="customShortcuts.delete_line"
           :shortcut-delete-word="customShortcuts.delete_word"
           :shortcut-table-add-row-below="customShortcuts.table_add_row_below"
