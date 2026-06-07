@@ -1,3 +1,5 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
@@ -23,8 +25,12 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new() -> Self {
-        let conn = Connection::open_in_memory().expect("Failed to create database");
+    pub fn new(app_handle: &tauri::AppHandle) -> Self {
+        let data_dir = app_handle.path().app_data_dir().expect("Failed to get app data dir");
+        std::fs::create_dir_all(&data_dir).expect("Failed to create data directory");
+        
+        let db_path = data_dir.join("jot.db");
+        let conn = Connection::open(&db_path).expect("Failed to create database");
         
         conn.execute(
             "CREATE TABLE IF NOT EXISTS notes (
@@ -194,7 +200,10 @@ fn resize_window(app: tauri::AppHandle, width: f64, height: f64, x: f64, y: f64)
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
-        .manage(AppState::new())
+        .setup(|app| {
+            app.manage(AppState::new(&app.handle()));
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             list_notes,
             save_note,
