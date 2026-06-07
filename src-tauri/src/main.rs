@@ -184,14 +184,14 @@ fn is_window_maximized(app: tauri::AppHandle) -> Result<bool, String> {
 #[tauri::command]
 fn resize_window(app: tauri::AppHandle, width: f64, height: f64, x: f64, y: f64) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("main") {
-        window.set_size(tauri::Size::Physical(tauri::PhysicalSize {
-            width: width as u32,
-            height: height as u32,
+        window.set_size(tauri::Size::Logical(tauri::LogicalSize {
+            width: width,
+            height: height,
         })).map_err(|e| e.to_string())?;
         
-        window.set_position(tauri::Position::Physical(tauri::PhysicalPosition {
-            x: x as i32,
-            y: y as i32,
+        window.set_position(tauri::Position::Logical(tauri::LogicalPosition {
+            x: x,
+            y: y,
         })).map_err(|e| e.to_string())?;
     }
     Ok(())

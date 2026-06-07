@@ -520,11 +520,12 @@ const saveNow = async (content: string): Promise<void> => {
 }
 
 onMounted(() => {
-  nextTick(() => {
+  // 延迟聚焦，确保编辑器完全初始化
+  setTimeout(() => {
     if (editor.value) {
       editor.value.commands.focus()
     }
-  })
+  }, 100)
 })
 
 onBeforeUnmount(() => {
