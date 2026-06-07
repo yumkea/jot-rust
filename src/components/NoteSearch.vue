@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
 import { useI18n } from '../composables/useI18n'
+import * as api from '../api'
 
 const { t } = useI18n()
 
@@ -37,7 +38,7 @@ const searchMode = ref<'title' | 'content'>('title')
 const searchInputRef = ref<HTMLInputElement | null>(null)
 
 const fetchNotes = async (): Promise<void> => {
-  const result = await window.api.listNotes()
+  const result = await api.listNotes()
   allNotes.value = result as NoteRecord[]
 }
 

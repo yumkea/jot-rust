@@ -144,10 +144,10 @@ onMounted(async () => {
 
   Object.keys(defaultShortcuts).forEach((key) => {
     if (settings[key]) {
-      customShortcuts.value[key] = settings[key]
+      (customShortcuts.value as Record<string, string>)[key] = settings[key]
     }
     if (settings[`${key}_is_global`] !== undefined) {
-      globalFlags.value[key] = settings[`${key}_is_global`] === 'true'
+      (globalFlags.value as Record<string, boolean>)[key] = settings[`${key}_is_global`] === 'true'
     }
   })
 
@@ -223,7 +223,9 @@ const handleShortcutKeyDown = async (e: KeyboardEvent): Promise<void> => {
 
   const newShortcut = getShortcutString(e)
   const keyToUpdate = recordingShortcut.value
-  customShortcuts.value[keyToUpdate] = newShortcut
+  if (keyToUpdate) {
+    (customShortcuts.value as Record<string, string>)[keyToUpdate] = newShortcut
+  }
   recordingShortcut.value = null
 
   await api.saveSetting(keyToUpdate, newShortcut)

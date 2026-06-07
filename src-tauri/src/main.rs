@@ -1,7 +1,7 @@
 use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
-use tauri::State;
+use tauri::{State, Manager};
 use chrono::Local;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -139,6 +139,58 @@ fn get_storage_path(app: tauri::AppHandle) -> Result<String, String> {
     Ok(path.to_string_lossy().to_string())
 }
 
+#[tauri::command]
+fn minimize_window(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        window.minimize().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn maximize_window(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        if window.is_maximized().unwrap_or(false) {
+            window.unmaximize().map_err(|e| e.to_string())?;
+        } else {
+            window.maximize().map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn close_window(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        window.close().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn is_window_maximized(app: tauri::AppHandle) -> Result<bool, String> {
+    if let Some(window) = app.get_webview_window("main") {
+        return window.is_maximized().map_err(|e| e.to_string());
+    }
+    Ok(false)
+}
+
+#[tauri::command]
+fn resize_window(app: tauri::AppHandle, width: f64, height: f64, x: f64, y: f64) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        window.set_size(tauri::Size::Physical(tauri::PhysicalSize {
+            width: width as u32,
+            height: height as u32,
+        })).map_err(|e| e.to_string())?;
+        
+        window.set_position(tauri::Position::Physical(tauri::PhysicalPosition {
+            x: x as i32,
+            y: y as i32,
+        })).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -149,7 +201,12 @@ fn main() {
             delete_note,
             get_settings,
             save_setting,
-            get_storage_path
+            get_storage_path,
+            minimize_window,
+            maximize_window,
+            close_window,
+            is_window_maximized,
+            resize_window
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

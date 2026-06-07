@@ -1,6 +1,8 @@
+import { invoke } from '@tauri-apps/api/core'
+
 /**
  * Window Animation Composable
- * Handles smooth Electron window resizing and positioning
+ * Handles smooth Tauri window resizing and positioning
  */
 
 export function useWindowAnimate(): {
@@ -40,7 +42,7 @@ export function useWindowAnimate(): {
       const currentX = Math.floor(startX + (targetX - startX) * easeProgress)
       const currentY = Math.floor(startY + (targetY - startY) * easeProgress)
 
-      window.electronAPI.resizeWindow(currentWidth, currentHeight, currentX, currentY)
+      invoke('resize_window', { width: currentWidth, height: currentHeight, x: currentX, y: currentY })
 
       if (progress < 1) {
         requestAnimationFrame(animate)

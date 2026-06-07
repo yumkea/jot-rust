@@ -1,4 +1,6 @@
-﻿/**
+﻿import { invoke } from '@tauri-apps/api/core'
+
+/**
  * 窗口缩放逻辑 Composables
  */
 export function useWindowResize(): {
@@ -47,7 +49,7 @@ export function useWindowResize(): {
         }
       }
 
-      window.electronAPI.resizeWindow(newWidth, newHeight, newX, newY)
+      invoke('resize_window', { width: newWidth, height: newHeight, x: newX, y: newY })
     }
 
     const onMouseUp = (): void => {

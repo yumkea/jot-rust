@@ -11,6 +11,7 @@ import 'katex/dist/katex.min.css'
 import { Node as ProsemirrorNode } from 'prosemirror-model'
 import { NoLinkInsideCode, StrictCode, TyporaBlockMath, TyporaBold, TyporaInlineMath, TyporaItalic, TyporaTaskList } from '../utils/editorRendering'
 import { editorJsonToMarkdown, normalizeContentForEditor } from '../utils/markdown'
+import * as api from '../api'
 
 // --- 接口定义 ---
 interface HeadingItem {
@@ -485,8 +486,8 @@ const saveNow = async (content: string): Promise<void> => {
 
   // 用精准查询替代全量 listNotes，避免性能浪费与并发竞态
   try {
-    const rows = await window.api.db.query('SELECT id FROM notes WHERE id = ?', [props.noteId])
-    const isAlreadyInDB = rows.length > 0
+    const notes = await api.listNotes()
+    const isAlreadyInDB = notes.some(note => note.id === props.noteId)
 
     if (isEmpty) {
       if (!isAlreadyInDB) {
@@ -495,7 +496,7 @@ const saveNow = async (content: string): Promise<void> => {
       } else {
         // 数据库有记录但当前被清空了 -> 更新数据库
         emit('save-start')
-        await window.api.saveNote(props.noteId, props.title, content)
+        await api.saveNote(props.noteId, props.title, content)
         lastSaveTime = Date.now()
         const now = new Date()
         emit('save-success', now.toLocaleTimeString('zh-CN', { hour12: false }))
@@ -508,7 +509,7 @@ const saveNow = async (content: string): Promise<void> => {
 
   emit('save-start')
   try {
-    await window.api.saveNote(props.noteId, props.title, content)
+    await api.saveNote(props.noteId, props.title, content)
     lastSaveTime = Date.now()
     const now = new Date()
     emit('save-success', now.toLocaleTimeString('zh-CN', { hour12: false }))

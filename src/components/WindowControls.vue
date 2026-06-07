@@ -4,6 +4,7 @@ import iconMinimize from '../assets/icons/minimize.svg'
 import iconMaximize from '../assets/icons/maximize.svg'
 import iconClose from '../assets/icons/close.svg'
 import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { invoke } from '@tauri-apps/api/core'
 
 const props = withDefaults(defineProps<{
   isPinned: boolean
@@ -17,25 +18,28 @@ defineEmits<{
 }>()
 
 const isMaximized = ref(false)
-let unsubscribeMaximized: (() => void) | null = null
 
-const minimize = (): void => window.electronAPI.minimize()
+const minimize = (): void => {
+  invoke('minimize_window')
+}
 
 const maximize = (): void => {
-  window.electronAPI.maximize()
+  invoke('maximize_window')
 }
-const close = (): void => window.electronAPI.close()
+
+const close = (): void => {
+  invoke('close_window')
+}
 
 onMounted(async () => {
-  isMaximized.value = await window.electronAPI.isMaximized()
-  unsubscribeMaximized = window.electronAPI.onMaximizedStatus((status) => {
-    isMaximized.value = status
-  })
+  try {
+    isMaximized.value = await invoke('is_window_maximized') as boolean
+  } catch (e) {
+    console.error('Failed to get window state:', e)
+  }
 })
 
 onBeforeUnmount(() => {
-  unsubscribeMaximized?.()
-  unsubscribeMaximized = null
 })
 </script>
 

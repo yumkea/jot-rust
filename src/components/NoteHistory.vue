@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useI18n, getLocalizedDateLabel } from '../composables/useI18n'
+import * as api from '../api'
 
 const { language, t } = useI18n()
 
@@ -25,7 +26,7 @@ const allNotes = ref<NoteRecord[]>([])
 const expandedGroups = ref<Record<string, boolean>>({})
 
 const fetchNotes = async (): Promise<void> => {
-  const result = await window.api.listNotes()
+  const result = await api.listNotes()
   allNotes.value = result as NoteRecord[]
 }
 
