@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { ref, nextTick, onBeforeUnmount, computed } from 'vue'
+import { ref, nextTick, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import { Editor, Extension } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
@@ -518,6 +518,14 @@ const saveNow = async (content: string): Promise<void> => {
     emit('save-success', 'Save failed')
   }
 }
+
+onMounted(() => {
+  nextTick(() => {
+    if (editor.value) {
+      editor.value.commands.focus()
+    }
+  })
+})
 
 onBeforeUnmount(() => {
   if (debounceTimeout) clearTimeout(debounceTimeout)

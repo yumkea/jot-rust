@@ -360,23 +360,10 @@ const resetSize = (): void => {
 watch(activeTab, async (newTab, oldTab) => {
   if (isResetting.value) return
 
-  // Tauri 中检查窗口是否最大化需要通过 Rust 命令
-  const maximized = false // 暂时设为 false，后续可以通过 Tauri API 实现
-  if (maximized) {
-    didExpand = false
-    return
-  }
-
-  const isWideEnough = window.outerWidth > window.screen.availWidth * 0.6
   const panelTabs = ['outline', 'search', 'history', 'settings']
 
   if (panelTabs.includes(newTab) && !panelTabs.includes(oldTab)) {
     // 开启面板逻辑
-    if (isWideEnough) {
-      didExpand = false
-      return
-    }
-
     didExpand = true
     const currentBounds = {
       width: window.outerWidth,
@@ -388,7 +375,6 @@ watch(activeTab, async (newTab, oldTab) => {
     const targetWidth = currentBounds.width + panelWidth
     const targetX = currentBounds.x - panelWidth
 
-    // Tauri 中设置最小尺寸需要通过 Rust 命令
     animateResize(targetWidth, currentBounds.height, targetX, currentBounds.y, 200)
   } else if (!panelTabs.includes(newTab) && panelTabs.includes(oldTab)) {
     // 关闭面板逻辑
@@ -405,9 +391,6 @@ watch(activeTab, async (newTab, oldTab) => {
     const targetX = currentBounds.x + panelWidth
 
     animateResize(targetWidth, currentBounds.height, targetX, currentBounds.y, 200)
-    setTimeout(() => {
-      // Tauri 中设置最小尺寸需要通过 Rust 命令
-    }, 250)
     didExpand = false
   } else if (panelTabs.includes(newTab) && panelTabs.includes(oldTab)) {
     // 两个面板之间切换
@@ -426,7 +409,6 @@ watch(activeTab, async (newTab, oldTab) => {
     const targetWidth = currentBounds.width + diff
     const targetX = currentBounds.x - diff
     
-    // Tauri 中设置最小尺寸需要通过 Rust 命令
     animateResize(targetWidth, currentBounds.height, targetX, currentBounds.y, 200)
   }
 })

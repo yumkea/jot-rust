@@ -5,6 +5,8 @@ import { invoke } from '@tauri-apps/api/core'
  * Handles smooth Tauri window resizing and positioning
  */
 
+let isAnimating = false
+
 export function useWindowAnimate(): {
   animateResize: (
     targetWidth: number,
@@ -24,6 +26,9 @@ export function useWindowAnimate(): {
     targetY: number,
     duration = 200
   ): void => {
+    if (isAnimating) return
+    isAnimating = true
+
     const startWidth = window.outerWidth
     const startHeight = window.outerHeight
     const startX = window.screenX
@@ -46,6 +51,8 @@ export function useWindowAnimate(): {
 
       if (progress < 1) {
         requestAnimationFrame(animate)
+      } else {
+        isAnimating = false
       }
     }
 
