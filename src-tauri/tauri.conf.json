@@ -1,0 +1,46 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-cli/schema.json",
+  "productName": "Jot",
+  "version": "1.0.0",
+  "identifier": "com.jot.app",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Jot",
+        "width": 502,
+        "height": 350,
+        "minWidth": 320,
+        "minHeight": 250,
+        "transparent": true,
+        "decorations": false,
+        "resizable": true,
+        "center": false
+      }
+    ],
+    "trayIcon": {
+      "iconPath": "icons/icon.ico",
+      "iconAsTemplate": true
+    },
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": []
+  }
+}

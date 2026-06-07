@@ -1,0 +1,1311 @@
+<script setup lang="ts">
+import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
+import SideBar from './components/SideBar.vue'
+import NoteOutline from './components/NoteOutline.vue'
+import NoteSearch from './components/NoteSearch.vue'
+import NoteHistory from './components/NoteHistory.vue'
+import NoteSettings from './components/NoteSettings.vue'
+import TitleBar from './components/TitleBar.vue'
+import NoteEditor from './components/NoteEditor.vue'
+import FooterBar from './components/FooterBar.vue'
+import WindowControls from './components/WindowControls.vue'
+import ResizeSensors from './components/ResizeSensors.vue'
+import { useWindowResize } from './composables/useWindowResize'
+import { useWindowAnimate } from './composables/useWindowAnimate'
+import { useI18n, type Language } from './composables/useI18n'
+import * as api from './api'
+
+// --- 国际化 ---
+const { language, t, setLanguage } = useI18n()
+
+// --- 接口定义 ---
+interface Heading {
+  level: number
+  text: string
+  pos: number
+}
+
+interface Note {
+  id: string
+  title: string
+  content: string
+}
+
+interface EditorInstance {
+  scrollToHeading: (pos: number) => void
+  setEditorContent: (content: string) => void
+}
+
+interface HistoryInstance {
+  refresh: () => void
+}
+
+// --- 状态管理 ---
+const isPinned = ref(false)
+const activeTab = ref('none')
+const headings = ref<Heading[]>([])
+const editorRef = ref<EditorInstance | null>(null)
+const historyRef = ref<HistoryInstance | null>(null)
+const notes = ref<Note[]>([])
+const activeNoteId = ref('')
+const activeSettingsTab = ref('general')
+const theme = ref('dark')
+const DEFAULT_ACCENT_COLOR = '#13b2ed'
+const accentColor = ref(DEFAULT_ACCENT_COLOR)
+const isAutoLaunch = ref(false)
+const closeAction = ref<'quit' | 'hide'>('hide')
+const shortcutInput = ref<HTMLInputElement | null>(null)
+
+// --- Shortcuts State ---
+const defaultShortcuts = {
+  toggle_outline: 'Ctrl+L',
+  toggle_history: 'Ctrl+H',
+  toggle_pin: 'Ctrl+P',
+  hide_window: 'Esc',
+  show_window: 'Ctrl+J',
+  new_note: 'Ctrl+N',
+  toggle_bold: 'Ctrl+B',
+  delete_line: 'Ctrl+Shift+K',
+  delete_word: 'Ctrl+W',
+  table_add_row_below: 'Ctrl+Enter',
+  table_delete_row: 'Ctrl+Backspace'
+}
+const customShortcuts = ref({ ...defaultShortcuts })
+const globalFlags = ref<Record<string, boolean>>({
+  toggle_outline: false,
+  toggle_history: false,
+  toggle_pin: false,
+  hide_window: false,
+  show_window: true,
+  new_note: false,
+  toggle_bold: false,
+  delete_line: false,
+  delete_word: false,
+  table_add_row_below: false,
+  table_delete_row: false
+})
+const recordingShortcut = ref<string | null>(null)
+
+// --- 窗口管理状态 ---
+const { startResize } = useWindowResize()
+const { animateResize } = useWindowAnimate()
+const outlineWidth = ref(160)
+const searchWidth = ref(160)
+const historyWidth = ref(160)
+const settingsWidth = ref(160)
+const isResizingPanel = ref(false)
+const isResetting = ref(false)
+let didExpand = false // 记录上一次切换是否触发了窗口扩充
+
+// 获取当前侧边面板宽度
+const getPanelWidth = (tab: string): number => {
+  if (tab === 'outline') return outlineWidth.value
+  if (tab === 'search') return searchWidth.value
+  if (tab === 'history') return historyWidth.value
+  if (tab === 'settings') return settingsWidth.value
+  return 0
+}
+
+// --- 逻辑处理 ---
+
+/**
+ * 初始化：从数据库加载最新一条笔记
+ */
+onMounted(async () => {
+  const savedNotes = await api.listNotes()
+  if (savedNotes.length > 0) {
+    notes.value = [savedNotes[0]]
+    activeNoteId.value = savedNotes[0].id
+  } else {
+    addNote()
+  }
+
+  // 加载快捷键设置
+  const settings = await api.getSettings()
+  if (settings.theme) {
+    theme.value = settings.theme
+  }
+
+  // 加载主题色设置
+  if (settings.accentColor) {
+    accentColor.value = settings.accentColor
+  }
+  applyAccentColor(accentColor.value)
+
+  // 加载语言设置
+  if (settings.language) {
+    setLanguage(settings.language as Language)
+  }
+
+  // 加载关闭动作设置
+  if (settings.closeAction) {
+    closeAction.value = settings.closeAction as 'quit' | 'hide'
+  }
+
+  Object.keys(defaultShortcuts).forEach((key) => {
+    if (settings[key]) {
+      customShortcuts.value[key] = settings[key]
+    }
+    if (settings[`${key}_is_global`] !== undefined) {
+      globalFlags.value[key] = settings[`${key}_is_global`] === 'true'
+    }
+  })
+
+  // 全局快捷键监听 (仅针对非全局配置的本窗口监听)
+  window.addEventListener('keydown', handleGlobalKeyDown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleGlobalKeyDown)
+})
+
+/**
+ * 执行快捷键指令 (复用逻辑)
+ */
+const executeShortcutCommand = (command: string): void => {
+  if (command === 'toggle_pin') {
+    togglePin()
+  } else if (command === 'toggle_outline') {
+    activeTab.value = activeTab.value === 'outline' ? 'none' : 'outline'
+  } else if (command === 'toggle_history') {
+    activeTab.value = activeTab.value === 'history' ? 'none' : 'history'
+  } else if (command === 'hide_window') {
+    // Tauri 中隐藏窗口需要通过 Rust 命令
+  } else if (command === 'show_window') {
+    // show_window 由主进程处理，但也可能需要同步显示状态
+  } else if (command === 'new_note') {
+    addNote()
+  }
+}
+
+const APP_LEVEL_SHORTCUTS = new Set(['toggle_pin', 'toggle_outline', 'toggle_history', 'hide_window', 'show_window', 'new_note'])
+
+/**
+ * 将 KeyboardEvent 转换为自定义格式字符串
+ */
+const getShortcutString = (e: KeyboardEvent): string => {
+  const keys: string[] = []
+  if (e.ctrlKey) keys.push('Ctrl')
+  if (e.altKey) keys.push('Alt')
+  if (e.shiftKey) keys.push('Shift')
+  if (e.metaKey) keys.push('Meta')
+  
+  // 转换按键名称
+  let keyName = e.key
+  if (keyName === ' ') keyName = 'Space'
+  if (keyName === 'Escape') keyName = 'Esc'
+  if (keyName === 'Control') return keys.join('+') // 忽略单纯的修饰键
+  if (keyName === 'Alt') return keys.join('+')
+  if (keyName === 'Shift') return keys.join('+')
+  if (keyName === 'Meta') return keys.join('+')
+  
+  // 对于字母键统一转大写，对于 F1-F12 等保持原样或格式化
+  if (keyName.length === 1) {
+    keys.push(keyName.toUpperCase())
+  } else {
+    keys.push(keyName)
+  }
+  
+  return keys.join('+')
+}
+
+/**
+ * 停止记录并保存
+ */
+const handleShortcutKeyDown = async (e: KeyboardEvent): Promise<void> => {
+  if (!recordingShortcut.value) return
+
+  e.preventDefault()
+  e.stopPropagation()
+
+  // 忽略单纯的修饰键
+  if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return
+
+  const newShortcut = getShortcutString(e)
+  const keyToUpdate = recordingShortcut.value
+  customShortcuts.value[keyToUpdate] = newShortcut
+  recordingShortcut.value = null
+
+  await api.saveSetting(keyToUpdate, newShortcut)
+}
+
+/**
+ * 新建笔记：仅内存级操作，直到输入内容才持久化
+ */
+const addNote = (): void => {
+  const newNote: Note = {
+    id: Date.now().toString(),
+    title: t('editor.untitled'),
+    content: ''
+  }
+  notes.value.push(newNote)
+  activeNoteId.value = newNote.id
+}
+
+/**
+ * 助手函数：判断内容是否为空（忽略空 HTML 标签）
+ */
+const isNoteEmpty = (content: string): boolean => {
+  if (!content) return true
+  const cleanContent = content
+    .replace(/[`*_#>\[\]()!|-]/g, '')
+    .replace(/\s+/g, '')
+    .trim()
+  return cleanContent === ''
+}
+
+/**
+ * 核心快捷键处理逻辑：本地拦截与执行
+ */
+const handleGlobalKeyDown = (e: KeyboardEvent): void => {
+  if (recordingShortcut.value) return
+
+  const shortcutStr = getShortcutString(e)
+  
+  // 查找匹配的快捷键
+  for (const [command, mapping] of Object.entries(customShortcuts.value)) {
+    // 如果该快捷键被标记为 Global，则不在本地 handleGlobalKeyDown 中执行（由主进程处理）
+    // 除非主进程没有捕获到（例如窗口未聚焦），但 Electron 的 globalShortcut 是系统级的。
+    // 这里我们仅处理非 Global 的快捷键。
+    if (mapping === shortcutStr && !globalFlags.value[command] && APP_LEVEL_SHORTCUTS.has(command)) {
+      e.preventDefault()
+      executeShortcutCommand(command)
+      break
+    }
+  }
+}
+
+/**
+ * 开始录制快捷键
+ */
+const startRecording = (key: string): void => {
+  recordingShortcut.value = key
+  // 等待 DOM 更新后聚焦隐藏输入框
+  setTimeout(() => {
+    shortcutInput.value?.focus()
+  }, 0)
+}
+
+/**
+ * 关闭笔记并清理数据库中存在的空笔记
+ */
+const closeNote = async (id: string): Promise<void> => {
+  const index = notes.value.findIndex((n) => n.id === id)
+  if (index === -1) return
+  
+  const noteToDelete = notes.value[index]
+
+  // 如果内容为空，关闭时从数据库中彻底移除
+  if (isNoteEmpty(noteToDelete.content)) {
+    await api.deleteNote(id)
+    historyRef.value?.refresh?.()
+  }
+
+  notes.value.splice(index, 1)
+  
+  // 如果所有标签都关闭了，自动创建一个新标签并聚焦
+  if (notes.value.length === 0) {
+    addNote()
+    return
+  }
+
+  // 处理 activeNoteId
+  if (activeNoteId.value === id) {
+    activeNoteId.value = notes.value[Math.max(0, index - 1)].id
+  }
+}
+
+/**
+ * 更新内存中的笔记内容
+ */
+const updateNoteContent = (content: string): void => {
+  const note = notes.value.find((n) => n.id === activeNoteId.value)
+  if (note) note.content = content
+}
+
+/**
+ * 重置窗口到默认尺寸 (502x350)
+ */
+const resetSize = (): void => {
+  isResetting.value = true
+  didExpand = false
+  outlineWidth.value = 160
+  searchWidth.value = 160
+  historyWidth.value = 160
+  settingsWidth.value = 160
+
+  if (activeTab.value !== 'none') {
+    const currentX = window.screenX
+    const currentY = window.screenY
+    const panelWidth = getPanelWidth(activeTab.value)
+    
+    activeTab.value = 'none'
+    // Tauri 中设置最小尺寸需要通过 Rust 命令
+    animateResize(502, 350, currentX + panelWidth, currentY, 250)
+  } else {
+    // Tauri 中调整窗口大小需要通过 Rust 命令
+    window.resizeTo(502, 350)
+  }
+
+  setTimeout(() => {
+    isResetting.value = false
+  }, 300)
+}
+
+/**
+ * 开启/关闭大纲时的窗口扩充逻辑
+ */
+watch(activeTab, async (newTab, oldTab) => {
+  if (isResetting.value) return
+
+  // Tauri 中检查窗口是否最大化需要通过 Rust 命令
+  const maximized = false // 暂时设为 false，后续可以通过 Tauri API 实现
+  if (maximized) {
+    didExpand = false
+    return
+  }
+
+  const isWideEnough = window.outerWidth > window.screen.availWidth * 0.6
+  const panelTabs = ['outline', 'search', 'history', 'settings']
+
+  if (panelTabs.includes(newTab) && !panelTabs.includes(oldTab)) {
+    // 开启面板逻辑
+    if (isWideEnough) {
+      didExpand = false
+      return
+    }
+
+    didExpand = true
+    const currentBounds = {
+      width: window.outerWidth,
+      height: window.outerHeight,
+      x: window.screenX,
+      y: window.screenY
+    }
+    const panelWidth = getPanelWidth(newTab)
+    const targetWidth = currentBounds.width + panelWidth
+    const targetX = currentBounds.x - panelWidth
+
+    // Tauri 中设置最小尺寸需要通过 Rust 命令
+    animateResize(targetWidth, currentBounds.height, targetX, currentBounds.y, 200)
+  } else if (!panelTabs.includes(newTab) && panelTabs.includes(oldTab)) {
+    // 关闭面板逻辑
+    if (!didExpand) return
+
+    const currentBounds = {
+      width: window.outerWidth,
+      height: window.outerHeight,
+      x: window.screenX,
+      y: window.screenY
+    }
+    const panelWidth = getPanelWidth(oldTab)
+    const targetWidth = Math.max(320, currentBounds.width - panelWidth)
+    const targetX = currentBounds.x + panelWidth
+
+    animateResize(targetWidth, currentBounds.height, targetX, currentBounds.y, 200)
+    setTimeout(() => {
+      // Tauri 中设置最小尺寸需要通过 Rust 命令
+    }, 250)
+    didExpand = false
+  } else if (panelTabs.includes(newTab) && panelTabs.includes(oldTab)) {
+    // 两个面板之间切换
+    if (!didExpand) return
+    
+    // 调整宽度差
+    const diff = getPanelWidth(newTab) - getPanelWidth(oldTab)
+    if (diff === 0) return
+
+    const currentBounds = {
+      width: window.outerWidth,
+      height: window.outerHeight,
+      x: window.screenX,
+      y: window.screenY
+    }
+    const targetWidth = currentBounds.width + diff
+    const targetX = currentBounds.x - diff
+    
+    // Tauri 中设置最小尺寸需要通过 Rust 命令
+    animateResize(targetWidth, currentBounds.height, targetX, currentBounds.y, 200)
+  }
+})
+
+/**
+ * 拖动调整侧边面板宽度逻辑
+ */
+const startPanelResize = (e: MouseEvent): void => {
+  isResizingPanel.value = true
+  const startX = e.clientX
+  const currentTab = activeTab.value
+  const startPanelWidth = getPanelWidth(currentTab)
+
+  const onMouseMove = (moveEvent: MouseEvent): void => {
+    if (!isResizingPanel.value) return
+    const deltaX = moveEvent.clientX - startX
+    const newWidth = Math.max(120, Math.min(350, startPanelWidth + deltaX))
+    
+    if (currentTab === 'outline') outlineWidth.value = newWidth
+    else if (currentTab === 'search') searchWidth.value = newWidth
+    else if (currentTab === 'history') historyWidth.value = newWidth
+    else if (currentTab === 'settings') settingsWidth.value = newWidth
+  }
+
+  const onMouseUp = (): void => {
+    isResizingPanel.value = false
+    document.removeEventListener('mousemove', onMouseMove)
+    document.removeEventListener('mouseup', onMouseUp)
+  }
+
+  document.addEventListener('mousemove', onMouseMove)
+  document.addEventListener('mouseup', onMouseUp)
+}
+
+/**
+ * 置顶切换
+ */
+const togglePin = (): void => {
+  isPinned.value = !isPinned.value
+  // Tauri 中设置窗口置顶需要通过 Rust 命令
+}
+
+// --- 保存与状态同步 ---
+const lastSavedTime = ref('')
+
+const handleSaveStart = (): void => {}
+const handleSaveSuccess = (time: string): void => {
+  lastSavedTime.value = time
+  historyRef.value?.refresh?.()
+}
+const handleUpdateHeadings = (newHeadings: Heading[]): void => {
+  headings.value = newHeadings
+}
+const handleSelectHeading = (pos: number): void => {
+  editorRef.value?.scrollToHeading(pos)
+}
+
+/**
+ * 从列表中选择笔记
+ */
+const handleSelectNote = (note: { id: string; title: string; content: string }): void => {
+  const existingNote = notes.value.find((n) => n.id === note.id)
+  if (existingNote) {
+    activeNoteId.value = note.id
+  } else {
+    // 如果该笔记未在当前标签页中，则添加它
+    notes.value.push({
+      id: note.id,
+      title: note.title,
+      content: note.content
+    })
+    activeNoteId.value = note.id
+  }
+}
+
+const renameNote = (id: string, newTitle: string): void => {
+  const note = notes.value.find((n) => n.id === id)
+  if (note) {
+    note.title = newTitle
+
+    // 只有在内容不为空时才执行数据库保存
+    // 如果是空白笔记重命名，仅更新内存状态，直到输入内容才持久化
+    if (!isNoteEmpty(note.content)) {
+      api.saveNote(note.id, newTitle, note.content).then(() => {
+        handleSaveSuccess(new Date().toLocaleTimeString('zh-CN', { hour12: false }))
+      })
+    }
+  }
+}
+
+/**
+ * 关闭全部标签页
+ */
+const closeAllNotes = async (): Promise<void> => {
+  // 必须使用复制的数组进行循环，因为 closeNote 会修改原有数组
+  const ids = notes.value.map((n) => n.id)
+  for (const id of ids) {
+    await closeNote(id)
+  }
+}
+
+/**
+ * 切换开机自启
+ */
+const toggleAutoLaunch = (): void => {
+  isAutoLaunch.value = !isAutoLaunch.value
+  // Tauri 中设置开机自启需要通过 Rust 命令
+}
+
+/**
+ * 切换关闭动作
+ */
+const toggleCloseAction = async (): Promise<void> => {
+  closeAction.value = closeAction.value === 'hide' ? 'quit' : 'hide'
+  await api.saveSetting('closeAction', closeAction.value)
+}
+
+/**
+ * 切换主题
+ */
+const toggleTheme = async (): Promise<void> => {
+  theme.value = theme.value === 'dark' ? 'light' : 'dark'
+  await api.saveSetting('theme', theme.value)
+}
+
+/**
+ * 将 hex 颜色转为 r,g,b 字符串
+ */
+const hexToRgb = (hex: string): string => {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `${r}, ${g}, ${b}`
+}
+
+/**
+ * 将 hex 颜色转为 CSS filter 字符串（用于 SVG 图标着色）
+ */
+const hexToFilter = (hex: string): string => {
+  const r = parseInt(hex.slice(1, 3), 16) / 255
+  const g = parseInt(hex.slice(3, 5), 16) / 255
+  const b = parseInt(hex.slice(5, 7), 16) / 255
+
+  const max = Math.max(r, g, b)
+  const min = Math.min(r, g, b)
+  const l = (max + min) / 2
+
+  let h = 0
+  let s = 0
+  if (max !== min) {
+    const d = max - min
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break
+      case g: h = ((b - r) / d + 2) / 6; break
+      case b: h = ((r - g) / d + 4) / 6; break
+    }
+  }
+
+  const hueRotate = Math.round(h * 360 - 35)
+  const saturate = Math.round(s * 100 * 2.5)
+  const brightness = Math.round(l * 200 + 20)
+
+  return `invert(48%) sepia(90%) saturate(${saturate}%) hue-rotate(${hueRotate}deg) brightness(${brightness}%) contrast(90%)`
+}
+
+/**
+ * 应用主题色到 CSS 变量
+ */
+const applyAccentColor = (color: string): void => {
+  const rgb = hexToRgb(color)
+  const filter = hexToFilter(color)
+  document.documentElement.style.setProperty('--accent-color', color)
+  document.documentElement.style.setProperty('--accent-rgb', rgb)
+  document.documentElement.style.setProperty('--icon-active-filter', filter)
+}
+
+/**
+ * 更改主题色
+ */
+const changeAccentColor = async (e: Event): Promise<void> => {
+  const target = e.target as HTMLInputElement
+  accentColor.value = target.value
+  applyAccentColor(target.value)
+  await api.saveSetting('accentColor', target.value)
+}
+
+/**
+ * 重置主题色为默认值
+ */
+const resetAccentColor = async (): Promise<void> => {
+  accentColor.value = DEFAULT_ACCENT_COLOR
+  applyAccentColor(DEFAULT_ACCENT_COLOR)
+  await api.saveSetting('accentColor', DEFAULT_ACCENT_COLOR)
+}
+
+/**
+ * 切换语言
+ */
+const toggleLanguage = async (): Promise<void> => {
+  const newLang: Language = language.value === 'en' ? 'zh' : 'en'
+  setLanguage(newLang)
+  await api.saveSetting('language', newLang)
+}
+
+const activeNote = computed(() => notes.value.find((n) => n.id === activeNoteId.value))
+
+// 同步主题类到 html 元素，使 Teleport 到 body 的元素也能继承主题变量
+watch(theme, (newTheme) => {
+  document.documentElement.classList.toggle('theme-light', newTheme === 'light')
+}, { immediate: true })
+</script>
+
+<template>
+  <div class="wrapper glass border-glow" :class="`theme-${theme}`">
+    <!-- 背景/边框感应区 -->
+    <ResizeSensors :on-resize="startResize" :on-reset="resetSize" />
+
+    <!-- 左侧侧边栏及其内部面板 -->
+    <div class="sidebar-wrapper" :class="{ collapsed: activeTab === 'none' }">
+      <SideBar v-model:active-tab="activeTab" :t="t" @reset-size="resetSize" />
+
+      <!-- 分隔线 -->
+      <div class="tab-separator" :class="{ visible: activeTab !== 'none' }"></div>
+
+      <!-- 面板容器：显示大纲或历史 -->
+      <div class="sidebar-panels" :class="{ resizing: isResizingPanel }" :style="{ width: getPanelWidth(activeTab) + 'px' }">
+        <Transition name="panel-fade">
+          <NoteOutline
+            v-if="activeTab === 'outline'"
+            :key="'outline'"
+            :headings="headings"
+            :is-open="activeTab === 'outline'"
+            :width="outlineWidth"
+            @select="handleSelectHeading"
+          />
+          
+          <NoteSearch
+            v-else-if="activeTab === 'search'"
+            :key="'search'"
+            ref="historyRef"
+            :active-note-id="activeNoteId"
+            :is-open="activeTab === 'search'"
+            :width="searchWidth"
+            @select-note="handleSelectNote"
+          />
+
+          <NoteHistory
+            v-else-if="activeTab === 'history'"
+            :key="'history'"
+            ref="historyRef"
+            :active-note-id="activeNoteId"
+            :is-open="activeTab === 'history'"
+            :width="historyWidth"
+            @select-note="handleSelectNote"
+          />
+
+          <NoteSettings
+            v-else-if="activeTab === 'settings'"
+            :key="'settings'"
+            v-model:active-settings-tab="activeSettingsTab"
+            :is-open="activeTab === 'settings'"
+            :width="settingsWidth"
+          />
+        </Transition>
+      </div>
+
+      <!-- 拖拽调节区 -->
+      <div v-if="activeTab !== 'none'" class="outline-resizer" @mousedown="startPanelResize"></div>
+    </div>
+
+    <!-- 右侧容器 -->
+    <main class="main-container">
+      <template v-if="activeTab !== 'settings'">
+        <TitleBar
+          :is-pinned="isPinned"
+          :notes="notes"
+          :active-note-id="activeNoteId"
+          :t="t"
+          @toggle-pin="togglePin"
+          @add-note="addNote"
+          @close-all="closeAllNotes"
+          @close-note="closeNote"
+          @switch-note="(id) => (activeNoteId = id)"
+          @rename-note="renameNote"
+        />
+        <NoteEditor
+          v-if="activeNote"
+          :key="activeNoteId"
+          ref="editorRef"
+          :note-id="activeNoteId"
+          :title="activeNote.title"
+          :initial-content="activeNote.content"
+          :shortcut-delete-line="customShortcuts.delete_line"
+          :shortcut-delete-word="customShortcuts.delete_word"
+          :shortcut-table-add-row-below="customShortcuts.table_add_row_below"
+          :shortcut-table-delete-row="customShortcuts.table_delete_row"
+          :shortcut-toggle-bold="customShortcuts.toggle_bold"
+          :t="t"
+          @save-start="handleSaveStart"
+          @save-success="handleSaveSuccess"
+          @update-content="updateNoteContent"
+          @update-headings="handleUpdateHeadings"
+        />
+        <FooterBar
+          :on-resize="startResize"
+          :on-reset="resetSize"
+          :last-saved-time="lastSavedTime"
+          :t="t"
+        />
+      </template>
+
+      <div v-else class="settings-view">
+        <header class="settings-header">
+          <div class="settings-title">
+            {{
+              activeSettingsTab === 'general' ? t('settings.general') : activeSettingsTab === 'shortcuts' ? t('settings.shortcuts') : t('settings.about')
+            }}
+          </div>
+          <WindowControls :is-pinned="isPinned" :t="t" @toggle-pin="togglePin" />
+        </header>
+
+        <div v-if="activeSettingsTab === 'general'" class="settings-content general-content">
+          <div class="shortcut-list">
+            <div class="shortcut-item" @click="toggleTheme">
+              <span class="shortcut-label">{{ t('settings.theme') }}</span>
+              <div class="shortcut-group">
+                <span class="global-badge">{{ theme === 'dark' ? t('settings.theme.dark') : t('settings.theme.light') }}</span>
+              </div>
+            </div>
+            <div class="shortcut-item accent-color-item">
+              <span class="shortcut-label">{{ t('settings.accentColor') }}</span>
+              <div class="shortcut-group">
+                <label class="color-swatch" :style="{ background: accentColor, borderColor: accentColor }">
+                  <input type="color" :value="accentColor" @input="changeAccentColor" />
+                </label>
+                <span 
+                  v-if="accentColor !== DEFAULT_ACCENT_COLOR" 
+                  class="global-badge reset-color-btn" 
+                  @click="resetAccentColor"
+                >
+                  {{ t('settings.accentColor.reset') }}
+                </span>
+              </div>
+            </div>
+            <div class="shortcut-item" @click="toggleLanguage">
+              <span class="shortcut-label">{{ t('settings.language') }}</span>
+              <div class="shortcut-group">
+                <span class="global-badge">{{ language === 'en' ? t('settings.language.en') : t('settings.language.zh') }}</span>
+              </div>
+            </div>
+            <div class="shortcut-item" @click="toggleAutoLaunch">
+              <span class="shortcut-label">{{ t('settings.autoLaunch') }}</span>
+              <div class="shortcut-group">
+                <span class="global-badge">{{ isAutoLaunch ? t('settings.autoLaunch.on') : t('settings.autoLaunch.off') }}</span>
+              </div>
+            </div>
+            <div class="shortcut-item" @click="toggleCloseAction">
+              <span class="shortcut-label">{{ t('settings.closeAction') }}</span>
+              <div class="shortcut-group">
+                <span class="global-badge">{{ closeAction === 'hide' ? t('settings.closeAction.hide') : t('settings.closeAction.quit') }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else-if="activeSettingsTab === 'shortcuts'" class="settings-content shortcuts-content">
+          <div class="shortcut-list">
+            <div
+              class="shortcut-item"
+              :class="{ recording: recordingShortcut === 'hide_window' }"
+              @click="startRecording('hide_window')"
+            >
+              <span class="shortcut-label">{{ t('shortcut.hideWindow') }}</span>
+              <div class="shortcut-keys">
+                <kbd v-for="key in customShortcuts.hide_window.split('+')" :key="key">{{ key }}</kbd>
+              </div>
+              <div v-if="recordingShortcut === 'hide_window'" class="recording-overlay">{{ t('shortcut.recording') }}</div>
+            </div>
+
+            <div
+              class="shortcut-item"
+              :class="{ recording: recordingShortcut === 'show_window' }"
+              @click="startRecording('show_window')"
+            >
+              <span class="shortcut-label">{{ t('shortcut.showWindow') }}</span>
+              <div class="shortcut-group">
+                <span class="global-badge">{{ t('shortcut.global') }}</span>
+                <div class="shortcut-keys">
+                  <kbd v-for="key in customShortcuts.show_window.split('+')" :key="key">{{ key }}</kbd>
+                </div>
+              </div>
+              <div v-if="recordingShortcut === 'show_window'" class="recording-overlay">{{ t('shortcut.recording') }}</div>
+            </div>
+
+            <div
+              class="shortcut-item"
+              :class="{ recording: recordingShortcut === 'new_note' }"
+              @click="startRecording('new_note')"
+            >
+              <span class="shortcut-label">{{ t('shortcut.newNote') }}</span>
+              <div class="shortcut-keys">
+                <kbd v-for="key in customShortcuts.new_note.split('+')" :key="key">{{ key }}</kbd>
+              </div>
+              <div v-if="recordingShortcut === 'new_note'" class="recording-overlay">{{ t('shortcut.recording') }}</div>
+            </div>
+
+            <div
+              class="shortcut-item"
+              :class="{ recording: recordingShortcut === 'toggle_bold' }"
+              @click="startRecording('toggle_bold')"
+            >
+              <span class="shortcut-label">{{ t('shortcut.toggleBold') }}</span>
+              <div class="shortcut-keys">
+                <kbd v-for="key in customShortcuts.toggle_bold.split('+')" :key="key">{{ key }}</kbd>
+              </div>
+              <div v-if="recordingShortcut === 'toggle_bold'" class="recording-overlay">{{ t('shortcut.recording') }}</div>
+            </div>
+
+            <div
+              class="shortcut-item"
+              :class="{ recording: recordingShortcut === 'delete_line' }"
+              @click="startRecording('delete_line')"
+            >
+              <span class="shortcut-label">{{ t('shortcut.deleteLine') }}</span>
+              <div class="shortcut-keys">
+                <kbd v-for="key in customShortcuts.delete_line.split('+')" :key="key">{{ key }}</kbd>
+              </div>
+              <div v-if="recordingShortcut === 'delete_line'" class="recording-overlay">{{ t('shortcut.recording') }}</div>
+            </div>
+
+            <div
+              class="shortcut-item"
+              :class="{ recording: recordingShortcut === 'table_add_row_below' }"
+              @click="startRecording('table_add_row_below')"
+            >
+              <span class="shortcut-label">{{ t('shortcut.tableAddRowBelow') }}</span>
+              <div class="shortcut-keys">
+                <kbd v-for="key in customShortcuts.table_add_row_below.split('+')" :key="key">{{ key }}</kbd>
+              </div>
+              <div v-if="recordingShortcut === 'table_add_row_below'" class="recording-overlay">{{ t('shortcut.recording') }}</div>
+            </div>
+
+            <div
+              class="shortcut-item"
+              :class="{ recording: recordingShortcut === 'table_delete_row' }"
+              @click="startRecording('table_delete_row')"
+            >
+              <span class="shortcut-label">{{ t('shortcut.tableDeleteRow') }}</span>
+              <div class="shortcut-keys">
+                <kbd v-for="key in customShortcuts.table_delete_row.split('+')" :key="key">{{ key }}</kbd>
+              </div>
+              <div v-if="recordingShortcut === 'table_delete_row'" class="recording-overlay">{{ t('shortcut.recording') }}</div>
+            </div>
+
+            <div
+              class="shortcut-item"
+              :class="{ recording: recordingShortcut === 'delete_word' }"
+              @click="startRecording('delete_word')"
+            >
+              <span class="shortcut-label">{{ t('shortcut.deleteWord') }}</span>
+              <div class="shortcut-keys">
+                <kbd v-for="key in customShortcuts.delete_word.split('+')" :key="key">{{ key }}</kbd>
+              </div>
+              <div v-if="recordingShortcut === 'delete_word'" class="recording-overlay">{{ t('shortcut.recording') }}</div>
+            </div>
+          </div>
+          <!-- Invisible input to capture keys when recording -->
+          <input
+            v-if="recordingShortcut"
+            ref="shortcutInput"
+            class="hidden-input"
+            @keydown="handleShortcutKeyDown"
+            @blur="recordingShortcut = null"
+          />
+        </div>
+
+        <div v-else-if="activeSettingsTab === 'about'" class="settings-content about-content">
+          <div class="shortcut-list">
+            <div class="shortcut-item">
+              <span class="shortcut-label">GitHub</span>
+              <a class="shortcut-label about-link" href="https://github.com/yumkea/jot" target="_blank">github.com/yumkea/jot</a>
+            </div>
+          </div>
+          <div class="about-quote">{{ t('about.quote') }}</div>
+        </div>
+      </div>
+    </main>
+  </div>
+</template>
+
+<style>
+/* 
+  全局基础样式 
+  保留在 App.vue 中以维持整体布局骨架
+*/
+.wrapper {
+  position: relative;
+  height: 100vh;
+  width: 100vw;
+  margin: 0;
+  display: flex;
+  flex-direction: row;
+  border-radius: 8px;
+  overflow: hidden;
+  box-sizing: border-box;
+  color: #fff;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1.5px solid rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+  gap: 4px;
+}
+
+.main-container {
+  flex: 1; /* 右侧区域自动填充剩余空间 */
+  min-width: 0; /* 允许收缩，但靠内部元素撑开 */
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-main);
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+.sidebar-wrapper {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+  flex-shrink: 0;
+  background: var(--bg-main);
+  border-radius: 8px;
+  overflow: visible;
+  box-shadow: 4px 0 15px rgba(0, 0, 0, 0.05);
+  z-index: 10;
+}
+
+.sidebar-wrapper.collapsed {
+  overflow: visible;
+}
+
+.sidebar-wrapper.collapsed .sidebar {
+  border-radius: 8px;
+}
+
+.sidebar-panels {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-panels.resizing {
+  transition: none;
+}
+
+/* 面板切换动画 */
+.panel-fade-enter-active,
+.panel-fade-leave-active {
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+}
+
+.panel-fade-enter-active {
+  position: relative; /* 进入的组件设为 relative 以撑开容器 */
+}
+
+.panel-fade-enter-from {
+  opacity: 0;
+  transform: translateX(-15px);
+}
+
+.panel-fade-leave-to {
+  opacity: 0;
+  transform: translateX(15px);
+}
+
+.tab-separator {
+  width: 0;
+  height: 40%;
+  background: var(--divider-color);
+  align-self: center;
+  border-radius: 1px;
+  flex-shrink: 0;
+  opacity: 0;
+  transform: scaleY(0.5);
+  transition: all 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+.tab-separator.visible {
+  width: 1px;
+  opacity: 1;
+  margin: 0 4px;
+  transform: scaleY(1);
+}
+
+.outline-resizer {
+  width: 4px;
+  cursor: col-resize;
+  flex-shrink: 0;
+  transition: background 0.2s;
+  z-index: 20;
+  margin-left: -2px; /* 使拖拽区中心对准边框 */
+  background: transparent;
+}
+
+.outline-resizer:hover {
+  background: rgba(var(--accent-rgb), 0.3);
+}
+
+/* Settings View Styles */
+.settings-view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0 4px;
+  background: var(--bg-main);
+  color: var(--text-main);
+  position: relative;
+}
+
+.settings-content {
+  padding: 0 12px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+
+.settings-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.settings-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.settings-content::-webkit-scrollbar-thumb {
+  background: var(--text-low);
+  border-radius: 10px;
+}
+
+.settings-content::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+.settings-content::-webkit-scrollbar-thumb:active {
+  background: var(--text-main);
+}
+
+.settings-header {
+  height: 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  -webkit-app-region: drag;
+  padding: 0;
+}
+
+.settings-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  padding-left: 12px;
+}
+
+.shortcut-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shortcut-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border-color);
+  border-radius: 6px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  gap: 16px;
+  min-height: 40px;
+  cursor: pointer;
+}
+
+.shortcut-item:hover {
+  background: var(--hover-bg);
+  padding-left: 16px;
+}
+
+.shortcut-item.recording {
+  background: var(--recording-bg);
+  border-color: var(--border-active);
+}
+
+.recording-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--overlay-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: bold;
+  border-radius: 6px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.hidden-input {
+  position: absolute;
+  top: -100px;
+  opacity: 0;
+}
+
+.shortcut-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.shortcut-keys {
+  display: flex;
+  gap: 4px;
+}
+
+.shortcut-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.global-badge {
+  font-size: 10px;
+  background: var(--kbd-bg);
+  color: var(--text-secondary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  border: 1px solid var(--border-active);
+}
+
+.shortcut-keys kbd {
+  background: var(--kbd-bg);
+  border: 1px solid var(--border-active);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  min-width: 20px;
+  text-align: center;
+}
+
+
+
+.about-quote {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  font-size: 11px;
+  color: var(--text-quote);
+  font-style: italic;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.about-link {
+  color: var(--accent-color);
+  text-decoration: none;
+  cursor: pointer;
+}
+.about-link:hover {
+  text-decoration: underline;
+}
+
+/* 主题变量 */
+:root {
+  --accent-color: #0993a9;
+  --accent-rgb: 9, 147, 169;
+  --bg-main: #000;
+  --text-main: #fff;
+  --text-secondary: rgba(255, 255, 255, 0.9);
+  --text-low: rgba(255, 255, 255, 0.4);
+  --text-quote: rgba(255, 255, 255, 0.2);
+  --border-color: rgba(255, 255, 255, 0.05);
+  --border-active: rgba(255, 255, 255, 0.2);
+  --hover-bg: rgba(255, 255, 255, 0.05);
+  --recording-bg: rgba(255, 255, 255, 0.08);
+  --overlay-bg: rgba(0, 0, 0, 0.85);
+  --kbd-bg: rgba(255, 255, 255, 0.1);
+  --glass-bg: rgba(255, 255, 255, 0.1);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --icon-filter: brightness(0) invert(1);
+  --icon-active-filter: invert(41%) sepia(91%) saturate(1352%) hue-rotate(160deg) brightness(95%) contrast(95%);
+  --tab-active-bg: rgba(255, 255, 255, 0.1);
+  --divider-color: rgba(255, 255, 255, 0.15);
+}
+
+.theme-light,
+:root.theme-light {
+  --bg-main: #ffffff;
+  --text-main: #1a1a1a;
+  --text-secondary: rgba(0, 0, 0, 0.85);
+  --text-low: rgba(0, 0, 0, 0.45);
+  --text-quote: rgba(0, 0, 0, 0.3);
+  --border-color: rgba(0, 0, 0, 0.08);
+  --border-active: rgba(0, 0, 0, 0.15);
+  --hover-bg: rgba(0, 0, 0, 0.04);
+  --recording-bg: rgba(0, 0, 0, 0.06);
+  --overlay-bg: rgba(255, 255, 255, 0.9);
+  --kbd-bg: rgba(0, 0, 0, 0.06);
+  --glass-bg: rgba(255, 255, 255, 0.3);
+  --glass-border: rgba(0, 0, 0, 0.2);
+  --icon-filter: brightness(0); /* Black icons */
+  --icon-active-filter: invert(41%) sepia(91%) saturate(1352%) hue-rotate(160deg) brightness(95%) contrast(95%); /* Darker blue */
+  --tab-active-bg: rgba(0, 0, 0, 0.05);
+  --divider-color: rgba(0, 0, 0, 0.1);
+}
+
+.wrapper.glass {
+  background: var(--glass-bg) !important;
+  border-color: var(--glass-border) !important;
+}
+
+/* 主题色选择器 */
+.accent-color-item {
+  cursor: default;
+}
+
+.color-swatch {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.color-swatch:hover {
+  transform: scale(1.12);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 0 10px rgba(var(--accent-rgb), 0.5);
+}
+
+.color-swatch input[type="color"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+}
+
+.reset-color-btn {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: 4px;
+}
+
+.reset-color-btn:hover {
+  background: var(--hover-bg);
+  color: var(--text-main);
+  border-color: var(--accent-color);
+}
+</style>

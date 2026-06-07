@@ -1,0 +1,33 @@
+{
+  "name": "jot",
+  "version": "1.0.0",
+  "description": "An application for capturing fleeting ideas",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.0.0",
+    "@tauri-apps/plugin-shell": "^2.0.0",
+    "vue": "^3.5.25",
+    "@tiptap/extension-table": "^3.20.1",
+    "@tiptap/extension-task-item": "^3.20.1",
+    "@tiptap/extension-task-list": "^3.20.1",
+    "@tiptap/extension-mathematics": "^3.20.1",
+    "@tiptap/extension-placeholder": "^3.19.0",
+    "@tiptap/pm": "^3.19.0",
+    "@tiptap/starter-kit": "^3.19.0",
+    "@tiptap/vue-3": "^3.19.0",
+    "katex": "^0.16.37"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0",
+    "@vitejs/plugin-vue": "^6.0.2",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.6",
+    "vue-tsc": "^3.1.6"
+  }
+}
