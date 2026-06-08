@@ -1,3 +1,5 @@
+import { invoke } from '@tauri-apps/api/core'
+
 export interface Note {
   id: string;
   title: string;
@@ -10,7 +12,11 @@ export interface Settings {
 }
 
 export async function listNotes(): Promise<Note[]> {
-  return window.__TAURI__.core.invoke("list_notes") as Promise<Note[]>;
+  return invoke("list_notes") as Promise<Note[]>;
+}
+
+export async function getNote(id: string): Promise<Note | null> {
+  return invoke("get_note", { id }) as Promise<Note | null>;
 }
 
 export async function saveNote(
@@ -18,24 +24,44 @@ export async function saveNote(
   title: string,
   content: string
 ): Promise<{ success: boolean }> {
-  return window.__TAURI__.core.invoke("save_note", { id, title, content }) as Promise<{ success: boolean }>;
+  return invoke("save_note", { id, title, content }) as Promise<{ success: boolean }>;
 }
 
 export async function deleteNote(id: string): Promise<{ success: boolean }> {
-  return window.__TAURI__.core.invoke("delete_note", { id }) as Promise<{ success: boolean }>;
+  return invoke("delete_note", { id }) as Promise<{ success: boolean }>;
 }
 
 export async function getSettings(): Promise<Settings> {
-  return window.__TAURI__.core.invoke("get_settings") as Promise<Settings>;
+  return invoke("get_settings") as Promise<Settings>;
 }
 
 export async function saveSetting(
   key: string,
   value: string
 ): Promise<{ success: boolean }> {
-  return window.__TAURI__.core.invoke("save_setting", { key, value }) as Promise<{ success: boolean }>;
+  return invoke("save_setting", { key, value }) as Promise<{ success: boolean }>;
 }
 
 export async function getStoragePath(): Promise<string> {
-  return window.__TAURI__.core.invoke("get_storage_path") as Promise<string>;
+  return invoke("get_storage_path") as Promise<string>;
+}
+
+export async function setAlwaysOnTop(alwaysOnTop: boolean): Promise<void> {
+  return invoke("set_always_on_top", { alwaysOnTop }) as Promise<void>;
+}
+
+export async function hideWindow(): Promise<void> {
+  return invoke("hide_window") as Promise<void>;
+}
+
+export async function showWindow(): Promise<void> {
+  return invoke("show_window") as Promise<void>;
+}
+
+export async function setAutoLaunch(enable: boolean): Promise<void> {
+  return invoke("set_auto_launch", { enable }) as Promise<void>;
+}
+
+export async function getAutoLaunch(): Promise<boolean> {
+  return invoke("get_auto_launch") as Promise<boolean>;
 }

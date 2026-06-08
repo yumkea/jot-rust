@@ -172,17 +172,17 @@ onUnmounted(() => {
 /**
  * 执行快捷键指令 (复用逻辑)
  */
-const executeShortcutCommand = (command: string): void => {
+const executeShortcutCommand = async (command: string): Promise<void> => {
   if (command === 'toggle_pin') {
-    togglePin()
+    await togglePin()
   } else if (command === 'toggle_outline') {
     activeTab.value = activeTab.value === 'outline' ? 'none' : 'outline'
   } else if (command === 'toggle_history') {
     activeTab.value = activeTab.value === 'history' ? 'none' : 'history'
   } else if (command === 'hide_window') {
-    // Tauri 中隐藏窗口需要通过 Rust 命令
+    await api.hideWindow()
   } else if (command === 'show_window') {
-    // show_window 由主进程处理，但也可能需要同步显示状态
+    await api.showWindow()
   } else if (command === 'new_note') {
     addNote()
   }
@@ -235,10 +235,11 @@ const handleShortcutKeyDown = async (e: KeyboardEvent): Promise<void> => {
   const keyToUpdate = recordingShortcut.value
   if (keyToUpdate) {
     (customShortcuts.value as Record<string, string>)[keyToUpdate] = newShortcut
+    recordingShortcut.value = null
+    await api.saveSetting(keyToUpdate, newShortcut)
+  } else {
+    recordingShortcut.value = null
   }
-  recordingShortcut.value = null
-
-  await api.saveSetting(keyToUpdate, newShortcut)
 }
 
 /**
@@ -246,7 +247,7 @@ const handleShortcutKeyDown = async (e: KeyboardEvent): Promise<void> => {
  */
 const addNote = (): void => {
   const newNote: Note = {
-    id: Date.now().toString(),
+    id: crypto.randomUUID(),
     title: t('editor.untitled'),
     content: ''
   }
@@ -352,11 +353,9 @@ const resetSize = (): void => {
     const panelWidth = getPanelWidth(activeTab.value)
     
     activeTab.value = 'none'
-    // Tauri 中设置最小尺寸需要通过 Rust 命令
-    animateResize(502, 350, currentX + panelWidth, currentY, 250)
+    animateResize(502, 350, currentX + panelWidth, currentY)
   } else {
-    // Tauri 中调整窗口大小需要通过 Rust 命令
-    window.resizeTo(502, 350)
+    animateResize(502, 350, window.screenX, window.screenY)
   }
 
   setTimeout(() => {
@@ -456,9 +455,9 @@ const startPanelResize = (e: MouseEvent): void => {
 /**
  * 置顶切换
  */
-const togglePin = (): void => {
+const togglePin = async (): Promise<void> => {
   isPinned.value = !isPinned.value
-  // Tauri 中设置窗口置顶需要通过 Rust 命令
+  await api.setAlwaysOnTop(isPinned.value)
 }
 
 // --- 保存与状态同步 ---
@@ -523,9 +522,9 @@ const closeAllNotes = async (): Promise<void> => {
 /**
  * 切换开机自启
  */
-const toggleAutoLaunch = (): void => {
+const toggleAutoLaunch = async (): Promise<void> => {
   isAutoLaunch.value = !isAutoLaunch.value
-  // Tauri 中设置开机自启需要通过 Rust 命令
+  await api.setAutoLaunch(isAutoLaunch.value)
 }
 
 /**

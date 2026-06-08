@@ -197,6 +197,79 @@ fn resize_window(app: tauri::AppHandle, width: f64, height: f64, x: f64, y: f64)
     Ok(())
 }
 
+#[tauri::command]
+fn get_note(state: State<AppState>, id: String) -> Result<Option<Note>, String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    let mut stmt = db.prepare("SELECT id, title, content, updated_at FROM notes WHERE id = ?1")
+        .map_err(|e| e.to_string())?;
+    
+    let mut notes = stmt.query_map(params![id], |row| {
+        Ok(Note {
+            id: row.get(0)?,
+            title: row.get(1)?,
+            content: row.get(2)?,
+            updated_at: row.get(3)?,
+        })
+    })
+    .map_err(|e| e.to_string())?
+    .collect::<Result<Vec<Note>, _>>()
+    .map_err(|e| e.to_string())?;
+
+    Ok(notes.pop())
+}
+
+#[tauri::command]
+fn set_always_on_top(app: tauri::AppHandle, always_on_top: bool) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        window.set_always_on_top(always_on_top).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn hide_window(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        window.hide().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn show_window(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        window.show().map_err(|e| e.to_string())?;
+        window.set_focus().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn set_auto_launch(app: tauri::AppHandle, enable: bool) -> Result<(), String> {
+    // 保存到设置中
+    let state = app.state::<AppState>();
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    db.execute(
+        "INSERT OR REPLACE INTO settings (key, value) VALUES ('auto_launch', ?1)",
+        params![enable.to_string()],
+    ).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+fn get_auto_launch(app: tauri::AppHandle) -> Result<bool, String> {
+    let state = app.state::<AppState>();
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    let result: Result<String, _> = db.query_row(
+        "SELECT value FROM settings WHERE key = 'auto_launch'",
+        [],
+        |row| row.get(0),
+    );
+    match result {
+        Ok(value) => Ok(value == "true"),
+        Err(_) => Ok(false),
+    }
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -206,6 +279,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             list_notes,
+            get_note,
             save_note,
             delete_note,
             get_settings,
@@ -215,7 +289,12 @@ fn main() {
             maximize_window,
             close_window,
             is_window_maximized,
-            resize_window
+            resize_window,
+            set_always_on_top,
+            hide_window,
+            show_window,
+            set_auto_launch,
+            get_auto_launch
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

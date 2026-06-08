@@ -415,7 +415,8 @@ const exportMarkdown = (): void => {
 const exportHTML = (): void => {
   if (!editor.value) return
   const html = editor.value.getHTML()
-  const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${props.title}</title><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.37/dist/katex.min.css"></head><body>${html}</body></html>`
+  const safeTitle = props.title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${safeTitle}</title><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.37/dist/katex.min.css"></head><body>${html}</body></html>`
   const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -486,8 +487,8 @@ const saveNow = async (content: string): Promise<void> => {
 
   // 用精准查询替代全量 listNotes，避免性能浪费与并发竞态
   try {
-    const notes = await api.listNotes()
-    const isAlreadyInDB = notes.some(note => note.id === props.noteId)
+    const existingNote = await api.getNote(props.noteId)
+    const isAlreadyInDB = existingNote !== null
 
     if (isEmpty) {
       if (!isAlreadyInDB) {
