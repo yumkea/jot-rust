@@ -93,9 +93,22 @@ const outlineWidth = ref(160)
 const searchWidth = ref(160)
 const historyWidth = ref(160)
 const settingsWidth = ref(160)
+const panelTab = ref('none')
+const isPanelOpen = ref(false)
 const isResizingPanel = ref(false)
 const isResetting = ref(false)
-let didExpand = false // 记录上一次切换是否触发了窗口扩充
+const isWindowMorphing = ref(false)
+const isWindowMorphActive = ref(false)
+const windowMorphMode = ref<'opening' | 'closing'>('opening')
+const windowMorphScale = ref('1')
+let panelTransitionTimer: number | null = null
+let panelTransitionId = 0
+let windowMorphTimer: number | null = null
+
+const WINDOW_MORPH_MS = 240
+const PANEL_TABS = ['outline', 'search', 'history', 'settings']
+
+const isPanelTab = (tab: string): boolean => PANEL_TABS.includes(tab)
 
 // 获取当前侧边面板宽度
 const getPanelWidth = (tab: string): number => {
@@ -104,6 +117,48 @@ const getPanelWidth = (tab: string): number => {
   if (tab === 'history') return historyWidth.value
   if (tab === 'settings') return settingsWidth.value
   return 0
+}
+
+const clearPanelTransitionTimer = (): void => {
+  if (panelTransitionTimer !== null) {
+    window.clearTimeout(panelTransitionTimer)
+    panelTransitionTimer = null
+  }
+}
+
+const clearWindowMorphTimer = (): void => {
+  if (windowMorphTimer !== null) {
+    window.clearTimeout(windowMorphTimer)
+    windowMorphTimer = null
+  }
+}
+
+const resetWindowMorph = (): void => {
+  clearWindowMorphTimer()
+  isWindowMorphing.value = false
+  isWindowMorphActive.value = false
+  windowMorphScale.value = '1'
+}
+
+const beginWindowMorph = (mode: 'opening' | 'closing', scale: number, after?: () => void): void => {
+  resetWindowMorph()
+  windowMorphMode.value = mode
+  windowMorphScale.value = Math.max(0.2, Math.min(1, scale)).toFixed(4)
+  isWindowMorphing.value = true
+  isWindowMorphActive.value = false
+
+  requestAnimationFrame(() => {
+    isWindowMorphActive.value = true
+  })
+
+  windowMorphTimer = window.setTimeout(() => {
+    after?.()
+    resetWindowMorph()
+  }, WINDOW_MORPH_MS)
+}
+
+const preventNativeContextMenu = (e: MouseEvent): void => {
+  e.preventDefault()
 }
 
 // --- 逻辑处理 ---
@@ -162,11 +217,15 @@ onMounted(async () => {
   })
 
   // 全局快捷键监听 (仅针对非全局配置的本窗口监听)
-  window.addEventListener('keydown', handleGlobalKeyDown)
+  window.addEventListener('keydown', handleGlobalKeyDown, true)
+  window.addEventListener('contextmenu', preventNativeContextMenu, true)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('keydown', handleGlobalKeyDown)
+  window.removeEventListener('keydown', handleGlobalKeyDown, true)
+  window.removeEventListener('contextmenu', preventNativeContextMenu, true)
+  clearPanelTransitionTimer()
+  resetWindowMorph()
 })
 
 /**
@@ -176,9 +235,9 @@ const executeShortcutCommand = async (command: string): Promise<void> => {
   if (command === 'toggle_pin') {
     await togglePin()
   } else if (command === 'toggle_outline') {
-    activeTab.value = activeTab.value === 'outline' ? 'none' : 'outline'
+    handleActiveTabChange(activeTab.value === 'outline' ? 'none' : 'outline')
   } else if (command === 'toggle_history') {
-    activeTab.value = activeTab.value === 'history' ? 'none' : 'history'
+    handleActiveTabChange(activeTab.value === 'history' ? 'none' : 'history')
   } else if (command === 'hide_window') {
     await api.hideWindow()
   } else if (command === 'show_window') {
@@ -277,12 +336,10 @@ const handleGlobalKeyDown = (e: KeyboardEvent): void => {
   
   // 查找匹配的快捷键
   for (const [command, mapping] of Object.entries(customShortcuts.value)) {
-    // 如果该快捷键被标记为 Global，则不在本地 handleGlobalKeyDown 中执行（由主进程处理）
-    // 除非主进程没有捕获到（例如窗口未聚焦），但 Electron 的 globalShortcut 是系统级的。
-    // 这里我们仅处理非 Global 的快捷键。
-    if (mapping === shortcutStr && !globalFlags.value[command] && APP_LEVEL_SHORTCUTS.has(command)) {
+    if (mapping === shortcutStr && APP_LEVEL_SHORTCUTS.has(command)) {
       e.preventDefault()
-      executeShortcutCommand(command)
+      e.stopPropagation()
+      void executeShortcutCommand(command)
       break
     }
   }
@@ -340,21 +397,28 @@ const updateNoteContent = (content: string): void => {
  * 重置窗口到默认尺寸 (502x350)
  */
 const resetSize = (): void => {
+  clearPanelTransitionTimer()
+  panelTransitionId += 1
+  resetWindowMorph()
   isResetting.value = true
-  didExpand = false
   outlineWidth.value = 160
   searchWidth.value = 160
   historyWidth.value = 160
   settingsWidth.value = 160
 
-  if (activeTab.value !== 'none') {
+  if (panelTab.value !== 'none') {
     const currentX = window.screenX
     const currentY = window.screenY
-    const panelWidth = getPanelWidth(activeTab.value)
+    const panelWidth = getPanelWidth(panelTab.value)
     
     activeTab.value = 'none'
+    panelTab.value = 'none'
+    isPanelOpen.value = false
     animateResize(502, 350, currentX + panelWidth, currentY)
   } else {
+    activeTab.value = 'none'
+    panelTab.value = 'none'
+    isPanelOpen.value = false
     animateResize(502, 350, window.screenX, window.screenY)
   }
 
@@ -363,64 +427,71 @@ const resetSize = (): void => {
   }, 300)
 }
 
-/**
- * 开启/关闭大纲时的窗口扩充逻辑
- */
-watch(activeTab, async (newTab, oldTab) => {
+const handleActiveTabChange = (nextTab: string): void => {
   if (isResetting.value) return
 
-  const panelTabs = ['outline', 'search', 'history', 'settings']
+  clearPanelTransitionTimer()
 
-  if (panelTabs.includes(newTab) && !panelTabs.includes(oldTab)) {
-    // 开启面板逻辑
-    didExpand = true
-    const currentBounds = {
-      width: window.outerWidth,
-      height: window.outerHeight,
-      x: window.screenX,
-      y: window.screenY
+  if (!isPanelTab(nextTab)) {
+    activeTab.value = 'none'
+
+    if (!isPanelTab(panelTab.value)) {
+      isPanelOpen.value = false
+      return
     }
-    const panelWidth = getPanelWidth(newTab)
-    const targetWidth = currentBounds.width + panelWidth
-    const targetX = currentBounds.x - panelWidth
 
-    animateResize(targetWidth, currentBounds.height, targetX, currentBounds.y)
-  } else if (!panelTabs.includes(newTab) && panelTabs.includes(oldTab)) {
-    // 关闭面板逻辑
-    if (!didExpand) return
+    isPanelOpen.value = false
+    const closingPanelWidth = getPanelWidth(panelTab.value)
+    const transitionId = ++panelTransitionId
+    const targetWidth = Math.max(320, window.outerWidth - closingPanelWidth)
+    const morphScale = targetWidth / window.outerWidth
 
-    const currentBounds = {
-      width: window.outerWidth,
-      height: window.outerHeight,
-      x: window.screenX,
-      y: window.screenY
-    }
-    const panelWidth = getPanelWidth(oldTab)
-    const targetWidth = Math.max(320, currentBounds.width - panelWidth)
-    const targetX = currentBounds.x + panelWidth
+    beginWindowMorph('closing', morphScale, () => {
+      if (panelTransitionId !== transitionId) return
 
-    animateResize(targetWidth, currentBounds.height, targetX, currentBounds.y)
-    didExpand = false
-  } else if (panelTabs.includes(newTab) && panelTabs.includes(oldTab)) {
-    // 两个面板之间切换
-    if (!didExpand) return
-    
-    // 调整宽度差
-    const diff = getPanelWidth(newTab) - getPanelWidth(oldTab)
-    if (diff === 0) return
-
-    const currentBounds = {
-      width: window.outerWidth,
-      height: window.outerHeight,
-      x: window.screenX,
-      y: window.screenY
-    }
-    const targetWidth = currentBounds.width + diff
-    const targetX = currentBounds.x - diff
-    
-    animateResize(targetWidth, currentBounds.height, targetX, currentBounds.y)
+      animateResize(
+        targetWidth,
+        window.outerHeight,
+        window.screenX + closingPanelWidth,
+        window.screenY
+      )
+      panelTab.value = 'none'
+      panelTransitionTimer = null
+    })
+    return
   }
-})
+
+  const currentPanelWidth = isPanelTab(panelTab.value) ? getPanelWidth(panelTab.value) : 0
+  const nextPanelWidth = getPanelWidth(nextTab)
+  const widthDelta = nextPanelWidth - currentPanelWidth
+  const currentWindowWidth = window.outerWidth
+  const targetWindowWidth = currentWindowWidth + widthDelta
+
+  activeTab.value = nextTab
+  panelTab.value = nextTab
+
+  if (widthDelta !== 0) {
+    if (widthDelta > 0) {
+      beginWindowMorph('opening', currentWindowWidth / targetWindowWidth)
+    } else {
+      beginWindowMorph('closing', targetWindowWidth / currentWindowWidth)
+    }
+
+    animateResize(
+      targetWindowWidth,
+      window.outerHeight,
+      window.screenX - widthDelta,
+      window.screenY
+    )
+  }
+
+  const transitionId = ++panelTransitionId
+  requestAnimationFrame(() => {
+    if (panelTransitionId === transitionId) {
+      isPanelOpen.value = true
+    }
+  })
+}
 
 /**
  * 拖动调整侧边面板宽度逻辑
@@ -428,7 +499,7 @@ watch(activeTab, async (newTab, oldTab) => {
 const startPanelResize = (e: MouseEvent): void => {
   isResizingPanel.value = true
   const startX = e.clientX
-  const currentTab = activeTab.value
+  const currentTab = panelTab.value
   const startPanelWidth = getPanelWidth(currentTab)
 
   const onMouseMove = (moveEvent: MouseEvent): void => {
@@ -632,61 +703,77 @@ watch(theme, (newTheme) => {
 </script>
 
 <template>
-  <div class="wrapper glass border-glow" :class="`theme-${theme}`">
+    <div
+      class="wrapper glass border-glow"
+      :class="[
+        `theme-${theme}`,
+        {
+          'window-morphing': isWindowMorphing,
+          'window-morph-active': isWindowMorphActive,
+          'window-morph-opening': windowMorphMode === 'opening',
+          'window-morph-closing': windowMorphMode === 'closing'
+        }
+      ]"
+      :style="{ '--window-morph-scale': windowMorphScale }"
+    >
     <!-- 背景/边框感应区 -->
     <ResizeSensors :on-resize="startResize" :on-reset="resetSize" />
 
     <!-- 左侧侧边栏及其内部面板 -->
-    <div class="sidebar-wrapper" :class="{ collapsed: activeTab === 'none' }">
-      <SideBar v-model:active-tab="activeTab" :t="t" @reset-size="resetSize" />
+    <div class="sidebar-wrapper" :class="{ collapsed: panelTab === 'none' }">
+      <SideBar :active-tab="activeTab" :t="t" @update:active-tab="handleActiveTabChange" @reset-size="resetSize" />
 
       <!-- 分隔线 -->
-      <div class="tab-separator" :class="{ visible: activeTab !== 'none' }"></div>
+      <div class="tab-separator" :class="{ visible: panelTab !== 'none' && isPanelOpen }"></div>
 
       <!-- 面板容器：显示大纲或历史 -->
-      <div class="sidebar-panels" :class="{ resizing: isResizingPanel }" :style="{ width: getPanelWidth(activeTab) + 'px' }">
+      <div
+        class="sidebar-panels"
+        :class="{ open: isPanelOpen, resizing: isResizingPanel }"
+        :style="{ width: panelTab !== 'none' ? getPanelWidth(panelTab) + 'px' : '0px' }"
+      >
         <Transition name="panel-fade">
           <NoteOutline
-            v-if="activeTab === 'outline'"
+            v-if="panelTab === 'outline'"
             :key="'outline'"
             :headings="headings"
-            :is-open="activeTab === 'outline'"
+            :is-open="isPanelOpen && panelTab === 'outline'"
             :width="outlineWidth"
             @select="handleSelectHeading"
           />
           
           <NoteSearch
-            v-else-if="activeTab === 'search'"
+            v-else-if="panelTab === 'search'"
             :key="'search'"
             ref="historyRef"
             :active-note-id="activeNoteId"
-            :is-open="activeTab === 'search'"
+            :is-open="isPanelOpen && panelTab === 'search'"
             :width="searchWidth"
             @select-note="handleSelectNote"
           />
 
           <NoteHistory
-            v-else-if="activeTab === 'history'"
+            v-else-if="panelTab === 'history'"
             :key="'history'"
             ref="historyRef"
             :active-note-id="activeNoteId"
-            :is-open="activeTab === 'history'"
+            :is-open="isPanelOpen && panelTab === 'history'"
             :width="historyWidth"
             @select-note="handleSelectNote"
           />
 
           <NoteSettings
-            v-else-if="activeTab === 'settings'"
+            v-else-if="panelTab === 'settings'"
             :key="'settings'"
             v-model:active-settings-tab="activeSettingsTab"
-            :is-open="activeTab === 'settings'"
+            :is-open="isPanelOpen && panelTab === 'settings'"
             :width="settingsWidth"
           />
         </Transition>
       </div>
 
       <!-- 拖拽调节区 -->
-      <div v-if="activeTab !== 'none'" class="outline-resizer" @mousedown="startPanelResize"></div>
+      <div v-if="isPanelOpen && activeTab !== 'none'" class="outline-resizer" @mousedown="startPanelResize"></div>
     </div>
 
     <!-- 右侧容器 -->
@@ -934,6 +1021,34 @@ watch(theme, (newTheme) => {
   gap: 4px;
 }
 
+.wrapper.window-morphing {
+  transform-origin: right center;
+  transition:
+    transform 240ms cubic-bezier(0.16, 1, 0.3, 1),
+    filter 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, filter;
+}
+
+.wrapper.window-morph-opening:not(.window-morph-active) {
+  transform: scaleX(var(--window-morph-scale));
+  filter: saturate(0.92) brightness(0.96);
+}
+
+.wrapper.window-morph-opening.window-morph-active {
+  transform: scaleX(1);
+  filter: saturate(1) brightness(1);
+}
+
+.wrapper.window-morph-closing {
+  transform: scaleX(1);
+  filter: saturate(1) brightness(1);
+}
+
+.wrapper.window-morph-closing.window-morph-active {
+  transform: scaleX(var(--window-morph-scale));
+  filter: saturate(0.94) brightness(0.97);
+}
+
 .main-container {
   flex: 1; /* 右侧区域自动填充剩余空间 */
   min-width: 0; /* 允许收缩，但靠内部元素撑开 */
@@ -970,7 +1085,17 @@ watch(theme, (newTheme) => {
   height: 100%;
   overflow: hidden;
   position: relative;
-  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0;
+  clip-path: inset(0 100% 0 0);
+  transition:
+    clip-path 180ms linear,
+    opacity 180ms linear;
+  will-change: clip-path, opacity;
+}
+
+.sidebar-panels.open {
+  opacity: 1;
+  clip-path: inset(0 0 0 0);
 }
 
 .sidebar-panels.resizing {
@@ -981,8 +1106,8 @@ watch(theme, (newTheme) => {
 .panel-fade-enter-active,
 .panel-fade-leave-active {
   transition:
-    opacity 0.3s ease,
-    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    opacity 120ms linear,
+    transform 120ms linear;
   position: absolute;
   top: 0;
   left: 0;
@@ -995,12 +1120,12 @@ watch(theme, (newTheme) => {
 
 .panel-fade-enter-from {
   opacity: 0;
-  transform: translateX(-15px);
+  transform: translateX(-6px);
 }
 
 .panel-fade-leave-to {
   opacity: 0;
-  transform: translateX(15px);
+  transform: translateX(6px);
 }
 
 .tab-separator {
@@ -1012,7 +1137,11 @@ watch(theme, (newTheme) => {
   flex-shrink: 0;
   opacity: 0;
   transform: scaleY(0.5);
-  transition: all 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+  transition:
+    width 180ms linear,
+    opacity 180ms linear,
+    margin 180ms linear,
+    transform 180ms linear;
 }
 
 .tab-separator.visible {

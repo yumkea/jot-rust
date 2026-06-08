@@ -24,10 +24,6 @@
         "shadow": false
       }
     ],
-    "trayIcon": {
-      "iconPath": "icons/icon.ico",
-      "iconAsTemplate": true
-    },
     "security": {
       "csp": null
     }

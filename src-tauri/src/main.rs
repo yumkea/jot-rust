@@ -3,8 +3,12 @@
 use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
-use tauri::{State, Manager};
+use tauri::{menu::{Menu, MenuItem, PredefinedMenuItem}, tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}, Manager, State};
+use tauri_plugin_global_shortcut::{Builder as GlobalShortcutBuilder, ShortcutState};
 use chrono::Local;
+
+#[cfg(windows)]
+use windows::Win32::UI::WindowsAndMessaging::{SetWindowPos, SWP_NOACTIVATE, SWP_NOZORDER};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Note {
@@ -145,6 +149,92 @@ fn get_storage_path(app: tauri::AppHandle) -> Result<String, String> {
     Ok(path.to_string_lossy().to_string())
 }
 
+fn cursor_aligned_window_position(app: &tauri::AppHandle, width: i32, height: i32) -> Option<(i32, i32)> {
+    let cursor = app.cursor_position().ok()?;
+    let mut x = cursor.x.round() as i32 - width / 2;
+    let mut y = cursor.y.round() as i32 - 28;
+
+    if let Ok(monitors) = app.available_monitors() {
+        if let Some(monitor) = monitors.into_iter().find(|monitor| {
+            let area = monitor.work_area();
+            cursor.x >= area.position.x as f64
+                && cursor.x <= (area.position.x + area.size.width as i32) as f64
+                && cursor.y >= area.position.y as f64
+                && cursor.y <= (area.position.y + area.size.height as i32) as f64
+        }) {
+            let area = monitor.work_area();
+            let min_x = area.position.x;
+            let min_y = area.position.y;
+            let max_x = (area.position.x + area.size.width as i32 - width).max(min_x);
+            let max_y = (area.position.y + area.size.height as i32 - height).max(min_y);
+            x = x.clamp(min_x, max_x);
+            y = y.clamp(min_y, max_y);
+        }
+    }
+
+    Some((x, y))
+}
+
+fn show_main_window(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        if let Ok(size) = window.outer_size() {
+            if let Some((x, y)) = cursor_aligned_window_position(app, size.width as i32, size.height as i32) {
+                let _ = window.set_position(tauri::Position::Physical(tauri::PhysicalPosition { x, y }));
+            }
+        }
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
+fn toggle_main_window(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let is_visible = window.is_visible().unwrap_or(false);
+        let is_minimized = window.is_minimized().unwrap_or(false);
+        let is_focused = window.is_focused().unwrap_or(false);
+        if is_visible && !is_minimized && is_focused {
+            let _ = window.hide();
+        } else {
+            show_main_window(app);
+        }
+    }
+}
+
+fn setup_tray(app: &mut tauri::App) -> tauri::Result<()> {
+    let show_item = MenuItem::with_id(app, "show", "显示 Jot", true, None::<&str>)?;
+    let separator = PredefinedMenuItem::separator(app)?;
+    let quit_item = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&show_item, &separator, &quit_item])?;
+
+    let mut tray_builder = TrayIconBuilder::with_id("main-tray")
+        .tooltip("Jot")
+        .menu(&menu)
+        .show_menu_on_left_click(false)
+        .on_tray_icon_event(|tray, event| {
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+            {
+                toggle_main_window(tray.app_handle());
+            }
+        })
+        .on_menu_event(|app, event| match event.id().as_ref() {
+            "show" => show_main_window(app),
+            "quit" => app.exit(0),
+            _ => {}
+        });
+
+    if let Some(icon) = app.default_window_icon().cloned() {
+        tray_builder = tray_builder.icon(icon);
+    }
+
+    tray_builder.build(app)?;
+    Ok(())
+}
+
 #[tauri::command]
 fn minimize_window(app: tauri::AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("main") {
@@ -184,15 +274,39 @@ fn is_window_maximized(app: tauri::AppHandle) -> Result<bool, String> {
 #[tauri::command]
 fn resize_window(app: tauri::AppHandle, width: f64, height: f64, x: f64, y: f64) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("main") {
+        #[cfg(windows)]
+        {
+            let scale_factor = window.scale_factor().map_err(|e| e.to_string())?;
+            let position = tauri::LogicalPosition::new(x, y).to_physical::<i32>(scale_factor);
+            let size = tauri::LogicalSize::new(width, height).to_physical::<i32>(scale_factor);
+            let hwnd = window.hwnd().map_err(|e| e.to_string())?;
+
+            unsafe {
+                SetWindowPos(
+                    hwnd,
+                    None,
+                    position.x,
+                    position.y,
+                    size.width,
+                    size.height,
+                    SWP_NOZORDER | SWP_NOACTIVATE,
+                )
+                .map_err(|e| e.to_string())?;
+            }
+        }
+
+        #[cfg(not(windows))]
+        {
+            window.set_position(tauri::Position::Logical(tauri::LogicalPosition {
+                x: x,
+                y: y,
+            })).map_err(|e| e.to_string())?;
+
         window.set_size(tauri::Size::Logical(tauri::LogicalSize {
             width: width,
             height: height,
         })).map_err(|e| e.to_string())?;
-        
-        window.set_position(tauri::Position::Logical(tauri::LogicalPosition {
-            x: x,
-            y: y,
-        })).map_err(|e| e.to_string())?;
+        }
     }
     Ok(())
 }
@@ -236,10 +350,7 @@ fn hide_window(app: tauri::AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 fn show_window(app: tauri::AppHandle) -> Result<(), String> {
-    if let Some(window) = app.get_webview_window("main") {
-        window.show().map_err(|e| e.to_string())?;
-        window.set_focus().map_err(|e| e.to_string())?;
-    }
+    show_main_window(&app);
     Ok(())
 }
 
@@ -271,10 +382,24 @@ fn get_auto_launch(app: tauri::AppHandle) -> Result<bool, String> {
 }
 
 fn main() {
+    let global_shortcut_plugin = GlobalShortcutBuilder::new()
+        .with_shortcut("CmdOrCtrl+J")
+        .expect("failed to parse global shortcut CmdOrCtrl+J")
+        .with_handler(|app, _shortcut, event| {
+            if event.state() == ShortcutState::Pressed {
+                show_main_window(app);
+            }
+        })
+        .build();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(global_shortcut_plugin)
         .setup(|app| {
             app.manage(AppState::new(&app.handle()));
+
+            setup_tray(app)?;
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
