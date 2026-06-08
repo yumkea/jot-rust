@@ -17,14 +17,14 @@ export function useWindowAnimate(): {
   ) => void
 } {
   /**
-   * Animates the window bounds with throttled IPC calls
+   * Animates the window bounds with optimized performance
    */
   const animateResize = (
     targetWidth: number,
     targetHeight: number,
     targetX: number,
     targetY: number,
-    duration = 150
+    duration = 120
   ): void => {
     // 如果正在动画，取消当前动画
     if (animationId) {
@@ -38,16 +38,16 @@ export function useWindowAnimate(): {
     const startY = window.screenY
     const startTime = performance.now()
 
-    // 每 50ms 更新一次窗口位置（约 20fps）
-    const updateInterval = 50
+    // 每 40ms 更新一次窗口位置（约 25fps）
+    const updateInterval = 40
     let lastUpdateTime = 0
 
     const animate = (currentTime: number): void => {
       const elapsed = currentTime - startTime
       const progress = Math.min(elapsed / duration, 1)
 
-      // 使用 easeOutQuart 缓动函数
-      const easeProgress = 1 - Math.pow(1 - progress, 4)
+      // 使用 easeOutCubic 缓动函数（比 easeOutQuart 更轻量）
+      const easeProgress = 1 - Math.pow(1 - progress, 3)
 
       const currentWidth = Math.floor(startWidth + (targetWidth - startWidth) * easeProgress)
       const currentHeight = Math.floor(startHeight + (targetHeight - startHeight) * easeProgress)

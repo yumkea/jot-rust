@@ -385,7 +385,7 @@ watch(activeTab, async (newTab, oldTab) => {
     const targetWidth = currentBounds.width + panelWidth
     const targetX = currentBounds.x - panelWidth
 
-    animateResize(targetWidth, currentBounds.height, targetX, currentBounds.y, 200)
+    animateResize(targetWidth, currentBounds.height, targetX, currentBounds.y)
   } else if (!panelTabs.includes(newTab) && panelTabs.includes(oldTab)) {
     // 关闭面板逻辑
     if (!didExpand) return
@@ -400,7 +400,7 @@ watch(activeTab, async (newTab, oldTab) => {
     const targetWidth = Math.max(320, currentBounds.width - panelWidth)
     const targetX = currentBounds.x + panelWidth
 
-    animateResize(targetWidth, currentBounds.height, targetX, currentBounds.y, 200)
+    animateResize(targetWidth, currentBounds.height, targetX, currentBounds.y)
     didExpand = false
   } else if (panelTabs.includes(newTab) && panelTabs.includes(oldTab)) {
     // 两个面板之间切换
@@ -419,7 +419,7 @@ watch(activeTab, async (newTab, oldTab) => {
     const targetWidth = currentBounds.width + diff
     const targetX = currentBounds.x - diff
     
-    animateResize(targetWidth, currentBounds.height, targetX, currentBounds.y, 200)
+    animateResize(targetWidth, currentBounds.height, targetX, currentBounds.y)
   }
 })
 
