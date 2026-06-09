@@ -97,7 +97,6 @@ const settingsWidth = ref(160)
 const panelTab = ref('none')
 const isPanelOpen = ref(false)
 const isResizingPanel = ref(false)
-const isClosingPanel = ref(false)
 const isResetting = ref(false)
 const isWindowMorphing = ref(false)
 const isWindowMorphActive = ref(false)
@@ -462,15 +461,17 @@ const handleActiveTabChange = (nextTab: string): void => {
       return
     }
 
-    // 关闭面板：先执行窗口变形动画，动画结束后再隐藏面板
+    // 关闭面板：立即隐藏面板，然后执行窗口变形和调整
     const closingPanelWidth = getPanelWidth(panelTab.value)
     const transitionId = ++panelTransitionId
     const targetWidth = Math.max(320, window.outerWidth - closingPanelWidth)
     const morphScale = targetWidth / window.outerWidth
 
-    // 标记正在关闭面板，禁用 CSS 过渡
-    isClosingPanel.value = true
+    // 立即隐藏面板（跳过 CSS 过渡）
+    isPanelOpen.value = false
+    panelTab.value = 'none'
 
+    // 执行窗口变形动画
     beginWindowMorph('closing', morphScale, () => {
       if (panelTransitionId !== transitionId) return
 
@@ -480,11 +481,7 @@ const handleActiveTabChange = (nextTab: string): void => {
         window.screenX + closingPanelWidth,
         window.screenY
       )
-      // 窗口调整后立即隐藏面板
-      isPanelOpen.value = false
-      panelTab.value = 'none'
       panelTransitionTimer = null
-      isClosingPanel.value = false
     })
     return
   }
@@ -758,7 +755,7 @@ watch(theme, (newTheme) => {
       <!-- 面板容器：显示大纲或历史 -->
       <div
         class="sidebar-panels"
-        :class="{ open: isPanelOpen, resizing: isResizingPanel, closing: isClosingPanel }"
+        :class="{ open: isPanelOpen, resizing: isResizingPanel }"
         :style="{ width: panelTab !== 'none' ? getPanelWidth(panelTab) + 'px' : '0px' }"
       >
         <Transition name="panel-fade">
@@ -1125,10 +1122,6 @@ watch(theme, (newTheme) => {
 .sidebar-panels.open {
   opacity: 1;
   clip-path: inset(0 0 0 0);
-}
-
-.sidebar-panels.closing {
-  transition: none;
 }
 
 .sidebar-panels.resizing {

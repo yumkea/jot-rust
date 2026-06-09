@@ -21,7 +21,8 @@
         "decorations": false,
         "resizable": true,
         "center": false,
-        "shadow": false
+        "shadow": false,
+        "additionalBrowserArgs": "--disable-download-notification"
       }
     ],
     "security": {
