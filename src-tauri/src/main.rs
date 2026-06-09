@@ -202,7 +202,16 @@ fn toggle_main_window(app: &tauri::AppHandle) {
     let state: tauri::State<AppState> = app.state::<AppState>();
     let is_hidden = *state.is_hidden.lock().unwrap();
 
-    if is_hidden {
+    // 检查窗口是否可见、未最小化、已聚焦
+    let should_hide = if let Some(window) = app.get_webview_window("main") {
+        let is_visible = window.is_visible().unwrap_or(false);
+        let is_minimized = window.is_minimized().unwrap_or(false);
+        is_visible && !is_minimized
+    } else {
+        false
+    };
+
+    if is_hidden || !should_hide {
         show_main_window(app);
     } else if let Some(window) = app.get_webview_window("main") {
         let _ = window.hide();

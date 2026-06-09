@@ -526,20 +526,32 @@ const startPanelResize = (e: MouseEvent): void => {
   const startX = e.clientX
   const currentTab = panelTab.value
   const startPanelWidth = getPanelWidth(currentTab)
+  let rafId: number | null = null
 
   const onMouseMove = (moveEvent: MouseEvent): void => {
     if (!isResizingPanel.value) return
-    const deltaX = moveEvent.clientX - startX
-    const newWidth = Math.max(120, Math.min(350, startPanelWidth + deltaX))
-    
-    if (currentTab === 'outline') outlineWidth.value = newWidth
-    else if (currentTab === 'search') searchWidth.value = newWidth
-    else if (currentTab === 'history') historyWidth.value = newWidth
-    else if (currentTab === 'settings') settingsWidth.value = newWidth
+
+    // 使用 requestAnimationFrame 节流更新，避免频繁重绘
+    if (rafId !== null) return
+
+    rafId = requestAnimationFrame(() => {
+      rafId = null
+      const deltaX = moveEvent.clientX - startX
+      const newWidth = Math.max(120, Math.min(350, startPanelWidth + deltaX))
+
+      if (currentTab === 'outline') outlineWidth.value = newWidth
+      else if (currentTab === 'search') searchWidth.value = newWidth
+      else if (currentTab === 'history') historyWidth.value = newWidth
+      else if (currentTab === 'settings') settingsWidth.value = newWidth
+    })
   }
 
   const onMouseUp = (): void => {
     isResizingPanel.value = false
+    if (rafId !== null) {
+      cancelAnimationFrame(rafId)
+      rafId = null
+    }
     document.removeEventListener('mousemove', onMouseMove)
     document.removeEventListener('mouseup', onMouseUp)
   }
