@@ -4,7 +4,7 @@ use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 use tauri::{menu::{Menu, MenuItem, PredefinedMenuItem}, tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}, Manager, State};
-use tauri_plugin_global_shortcut::{Builder as GlobalShortcutBuilder, ShortcutState};
+use tauri_plugin_global_shortcut::{Builder as GlobalShortcutBuilder, GlobalShortcut, ShortcutState};
 use chrono::Local;
 
 #[cfg(windows)]
@@ -416,22 +416,67 @@ fn get_auto_launch(app: tauri::AppHandle) -> Result<bool, String> {
     }
 }
 
-fn main() {
-    let global_shortcut_plugin = GlobalShortcutBuilder::new()
-        .with_shortcut("CmdOrCtrl+J")
-        .expect("failed to parse global shortcut CmdOrCtrl+J")
-        .with_handler(|app, _shortcut, event| {
+#[tauri::command]
+fn update_global_shortcut(app: tauri::AppHandle, shortcut: String) -> Result<(), String> {
+    register_show_window_shortcut(&app, &shortcut)
+}
+
+fn register_show_window_shortcut(app: &tauri::AppHandle, shortcut_str: &str) -> Result<(), String> {
+    let gs = app.state::<GlobalShortcut<_>>();
+    // 先注销旧的快捷键
+    let _ = gs.unregister_all();
+
+    // 将前端格式 (Ctrl+J) 转换为 Tauri 格式 (CmdOrCtrl+J)
+    let tauri_shortcut = shortcut_str
+        .replace("Ctrl+", "CmdOrCtrl+")
+        .replace("Alt+", "Alt+")
+        .replace("Shift+", "Shift+");
+
+    gs.on_shortcut(
+        tauri_shortcut.as_str(),
+        move |app, _shortcut, event| {
             if event.state() == ShortcutState::Pressed {
                 toggle_main_window(app);
             }
-        })
-        .build();
+        },
+    ).map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+fn main() {
+    let global_shortcut_plugin = GlobalShortcutBuilder::new().build();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(global_shortcut_plugin)
         .setup(|app| {
             app.manage(AppState::new(&app.handle()));
+
+            // 从数据库读取 show_window 快捷键并注册
+            let state = app.state::<AppState>();
+            let shortcut_str = {
+                let db = state.db.lock().unwrap();
+                let result: Result<String, _> = db.query_row(
+                    "SELECT value FROM settings WHERE key = 'show_window'",
+                    [],
+                    |row| row.get(0),
+                );
+                result.unwrap_or_else(|_| "Ctrl+J".to_string())
+            };
+
+            // 注册全局快捷键
+            let gs = app.state::<GlobalShortcut<_>>();
+            let tauri_shortcut = shortcut_str
+                .replace("Ctrl+", "CmdOrCtrl+")
+                .replace("Alt+", "Alt+")
+                .replace("Shift+", "Shift+");
+
+            let _ = gs.on_shortcut(tauri_shortcut.as_str(), move |app, _shortcut, event| {
+                if event.state() == ShortcutState::Pressed {
+                    toggle_main_window(app);
+                }
+            });
 
             setup_tray(app)?;
 
@@ -454,7 +499,8 @@ fn main() {
             hide_window,
             show_window,
             set_auto_launch,
-            get_auto_launch
+            get_auto_launch,
+            update_global_shortcut
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

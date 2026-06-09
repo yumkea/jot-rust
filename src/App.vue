@@ -304,6 +304,15 @@ const handleShortcutKeyDown = async (e: KeyboardEvent): Promise<void> => {
     (customShortcuts.value as Record<string, string>)[keyToUpdate] = newShortcut
     recordingShortcut.value = null
     await api.saveSetting(keyToUpdate, newShortcut)
+
+    // 如果修改的是全局快捷键 (show_window)，需要更新后端注册
+    if (keyToUpdate === 'show_window') {
+      try {
+        await api.updateGlobalShortcut(newShortcut)
+      } catch (err) {
+        console.error('Failed to update global shortcut:', err)
+      }
+    }
   } else {
     recordingShortcut.value = null
   }

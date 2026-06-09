@@ -65,3 +65,7 @@ export async function setAutoLaunch(enable: boolean): Promise<void> {
 export async function getAutoLaunch(): Promise<boolean> {
   return invoke("get_auto_launch") as Promise<boolean>;
 }
+
+export async function updateGlobalShortcut(shortcut: string): Promise<void> {
+  return invoke("update_global_shortcut", { shortcut }) as Promise<void>;
+}
