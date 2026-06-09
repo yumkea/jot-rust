@@ -257,8 +257,24 @@ fn maximize_window(app: tauri::AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 fn close_window(app: tauri::AppHandle) -> Result<(), String> {
-    if let Some(window) = app.get_webview_window("main") {
-        window.close().map_err(|e| e.to_string())?;
+    // 根据 closeAction 设置决定行为：隐藏到托盘或退出应用
+    let close_action = {
+        let state = app.state::<AppState>();
+        let db = state.db.lock().map_err(|e| e.to_string())?;
+        let result: Result<String, _> = db.query_row(
+            "SELECT value FROM settings WHERE key = 'closeAction'",
+            [],
+            |row| row.get(0),
+        );
+        result.unwrap_or_else(|_| "hide".to_string())
+    };
+
+    if close_action == "quit" {
+        app.exit(0);
+    } else {
+        if let Some(window) = app.get_webview_window("main") {
+            let _ = window.hide();
+        }
     }
     Ok(())
 }
