@@ -46,6 +46,7 @@ const activeTab = ref('none')
 const headings = ref<Heading[]>([])
 const editorRef = ref<EditorInstance | null>(null)
 const historyRef = ref<HistoryInstance | null>(null)
+const searchRef = ref<HistoryInstance | null>(null)
 const notes = ref<Note[]>([])
 const activeNoteId = ref('')
 const activeSettingsTab = ref('general')
@@ -545,6 +546,7 @@ const handleSaveStart = (): void => {}
 const handleSaveSuccess = (time: string): void => {
   lastSavedTime.value = time
   historyRef.value?.refresh?.()
+  searchRef.value?.refresh?.()
 }
 const handleUpdateHeadings = (newHeadings: Heading[]): void => {
   headings.value = newHeadings
@@ -752,7 +754,7 @@ watch(theme, (newTheme) => {
           <NoteSearch
             v-else-if="panelTab === 'search'"
             :key="'search'"
-            ref="historyRef"
+            ref="searchRef"
             :active-note-id="activeNoteId"
             :is-open="isPanelOpen && panelTab === 'search'"
             :width="searchWidth"
