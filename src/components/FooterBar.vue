@@ -47,7 +47,7 @@ const props = withDefaults(defineProps<{
 
 .save-time {
   font-size: 11px; /* 稍微调大一点 */
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--text-low);
   font-family: ui-monospace, SFMono-Regular, monospace;
 }
 
@@ -67,7 +67,7 @@ const props = withDefaults(defineProps<{
 .icon-resize {
   width: 18px;
   height: 18px;
-  filter: brightness(0) invert(1);
+  filter: var(--icon-filter);
   transition: opacity 0.2s;
 }
 
