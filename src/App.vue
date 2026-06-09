@@ -202,6 +202,13 @@ onMounted(async () => {
     console.error('Failed to load settings:', e)
   }
 
+  // 加载开机自启设置
+  try {
+    isAutoLaunch.value = await api.getAutoLaunch()
+  } catch (e) {
+    console.error('Failed to load auto launch setting:', e)
+  }
+
   // 加载关闭动作设置
   if (settings.closeAction) {
     closeAction.value = settings.closeAction as 'quit' | 'hide'
