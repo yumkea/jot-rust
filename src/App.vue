@@ -97,6 +97,7 @@ const settingsWidth = ref(160)
 const panelTab = ref('none')
 const isPanelOpen = ref(false)
 const isResizingPanel = ref(false)
+const isClosingPanel = ref(false)
 const isResetting = ref(false)
 const isWindowMorphing = ref(false)
 const isWindowMorphActive = ref(false)
@@ -255,7 +256,7 @@ const executeShortcutCommand = async (command: string): Promise<void> => {
   }
 }
 
-const APP_LEVEL_SHORTCUTS = new Set(['toggle_pin', 'toggle_outline', 'toggle_history', 'hide_window', 'show_window', 'new_note'])
+const APP_LEVEL_SHORTCUTS = new Set(['toggle_pin', 'toggle_outline', 'toggle_history', 'hide_window', 'new_note'])
 
 /**
  * 将 KeyboardEvent 转换为自定义格式字符串
@@ -350,13 +351,17 @@ const handleGlobalKeyDown = (e: KeyboardEvent): void => {
   if (recordingShortcut.value) return
 
   const shortcutStr = getShortcutString(e)
-  
-  // 查找匹配的快捷键
+
+  // 查找匹配的快捷键，阻止所有配置快捷键的默认行为（防止浏览器默认动作如下载面板）
   for (const [command, mapping] of Object.entries(customShortcuts.value)) {
-    if (mapping === shortcutStr && APP_LEVEL_SHORTCUTS.has(command)) {
+    if (mapping === shortcutStr) {
       e.preventDefault()
       e.stopPropagation()
-      void executeShortcutCommand(command)
+      e.returnValue = false
+      // 仅对本地处理的快捷键执行命令，全局快捷键由后端处理
+      if (APP_LEVEL_SHORTCUTS.has(command)) {
+        void executeShortcutCommand(command)
+      }
       break
     }
   }
@@ -457,11 +462,14 @@ const handleActiveTabChange = (nextTab: string): void => {
       return
     }
 
-    isPanelOpen.value = false
+    // 关闭面板：先执行窗口变形动画，动画结束后再隐藏面板
     const closingPanelWidth = getPanelWidth(panelTab.value)
     const transitionId = ++panelTransitionId
     const targetWidth = Math.max(320, window.outerWidth - closingPanelWidth)
     const morphScale = targetWidth / window.outerWidth
+
+    // 标记正在关闭面板，禁用 CSS 过渡
+    isClosingPanel.value = true
 
     beginWindowMorph('closing', morphScale, () => {
       if (panelTransitionId !== transitionId) return
@@ -472,8 +480,11 @@ const handleActiveTabChange = (nextTab: string): void => {
         window.screenX + closingPanelWidth,
         window.screenY
       )
+      // 窗口调整后立即隐藏面板
+      isPanelOpen.value = false
       panelTab.value = 'none'
       panelTransitionTimer = null
+      isClosingPanel.value = false
     })
     return
   }
@@ -747,7 +758,7 @@ watch(theme, (newTheme) => {
       <!-- 面板容器：显示大纲或历史 -->
       <div
         class="sidebar-panels"
-        :class="{ open: isPanelOpen, resizing: isResizingPanel }"
+        :class="{ open: isPanelOpen, resizing: isResizingPanel, closing: isClosingPanel }"
         :style="{ width: panelTab !== 'none' ? getPanelWidth(panelTab) + 'px' : '0px' }"
       >
         <Transition name="panel-fade">
@@ -1114,6 +1125,10 @@ watch(theme, (newTheme) => {
 .sidebar-panels.open {
   opacity: 1;
   clip-path: inset(0 0 0 0);
+}
+
+.sidebar-panels.closing {
+  transition: none;
 }
 
 .sidebar-panels.resizing {
