@@ -26,6 +26,7 @@ pub struct Setting {
 
 pub struct AppState {
     pub db: Mutex<Connection>,
+    pub is_hidden: Mutex<bool>,
 }
 
 impl AppState {
@@ -56,6 +57,7 @@ impl AppState {
 
         AppState {
             db: Mutex::new(conn),
+            is_hidden: Mutex::new(false),
         }
     }
 }
@@ -188,19 +190,25 @@ fn show_main_window(app: &tauri::AppHandle) {
         // 确保窗口获得焦点（防止 hide() 后 show() 不生效的问题）
         let _ = window.set_always_on_top(true);
         let _ = window.set_always_on_top(false);
+
+        // 更新隐藏状态
+        let state: tauri::State<AppState> = app.state::<AppState>();
+        let mut is_hidden = state.is_hidden.lock().unwrap();
+        *is_hidden = false;
     }
 }
 
 fn toggle_main_window(app: &tauri::AppHandle) {
-    if let Some(window) = app.get_webview_window("main") {
-        let is_visible = window.is_visible().unwrap_or(false);
-        let is_minimized = window.is_minimized().unwrap_or(false);
-        let is_focused = window.is_focused().unwrap_or(false);
-        if is_visible && !is_minimized && is_focused {
-            let _ = window.hide();
-        } else {
-            show_main_window(app);
-        }
+    let state: tauri::State<AppState> = app.state::<AppState>();
+    let is_hidden = *state.is_hidden.lock().unwrap();
+
+    if is_hidden {
+        show_main_window(app);
+    } else if let Some(window) = app.get_webview_window("main") {
+        let _ = window.hide();
+        // 更新隐藏状态
+        let mut hidden = state.is_hidden.lock().unwrap();
+        *hidden = true;
     }
 }
 
@@ -277,6 +285,10 @@ fn close_window(app: tauri::AppHandle) -> Result<(), String> {
     } else {
         if let Some(window) = app.get_webview_window("main") {
             let _ = window.hide();
+            // 更新隐藏状态
+            let state: tauri::State<AppState> = app.state::<AppState>();
+            let mut is_hidden = state.is_hidden.lock().unwrap();
+            *is_hidden = true;
         }
     }
     Ok(())
@@ -363,6 +375,10 @@ fn set_always_on_top(app: tauri::AppHandle, always_on_top: bool) -> Result<(), S
 fn hide_window(app: tauri::AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("main") {
         window.hide().map_err(|e| e.to_string())?;
+        // 更新隐藏状态
+        let state: tauri::State<AppState> = app.state::<AppState>();
+        let mut is_hidden = state.is_hidden.lock().unwrap();
+        *is_hidden = true;
     }
     Ok(())
 }
