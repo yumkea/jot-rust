@@ -185,6 +185,9 @@ fn show_main_window(app: &tauri::AppHandle) {
         let _ = window.unminimize();
         let _ = window.show();
         let _ = window.set_focus();
+        // 确保窗口获得焦点（防止 hide() 后 show() 不生效的问题）
+        let _ = window.set_always_on_top(true);
+        let _ = window.set_always_on_top(false);
     }
 }
 
@@ -403,7 +406,7 @@ fn main() {
         .expect("failed to parse global shortcut CmdOrCtrl+J")
         .with_handler(|app, _shortcut, event| {
             if event.state() == ShortcutState::Pressed {
-                show_main_window(app);
+                toggle_main_window(app);
             }
         })
         .build();
