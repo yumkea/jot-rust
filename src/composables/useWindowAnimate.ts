@@ -5,9 +5,6 @@ import { invoke } from '@tauri-apps/api/core'
  * Handles smooth Tauri window resizing and positioning
  */
 
-let animationId: number | null = null
-let animationVersion = 0
-
 export function useWindowAnimate(): {
   animateResize: (
     targetWidth: number,
@@ -15,10 +12,11 @@ export function useWindowAnimate(): {
     targetX: number,
     targetY: number,
     duration?: number
-  ) => void
+  ) => Promise<void>
 } {
   /**
-   * Animates the window bounds with optimized performance
+   * Applies native window bounds once. Visual motion stays inside the WebView
+   * with transform/opacity so the window manager does not re-layout every frame.
    */
   const animateResize = (
     targetWidth: number,
@@ -26,20 +24,15 @@ export function useWindowAnimate(): {
     targetX: number,
     targetY: number,
     _duration = 0
-  ): void => {
-    if (animationId) {
-      cancelAnimationFrame(animationId)
-      animationId = null
-    }
-
-    animationVersion += 1
-
-    void invoke('resize_window', {
+  ): Promise<void> => {
+    return invoke<void>('resize_window', {
       width: Math.round(targetWidth),
       height: Math.round(targetHeight),
       x: Math.round(targetX),
       y: Math.round(targetY)
-    }).catch((error) => console.error('Failed to resize window:', error))
+    }).catch((error) => {
+      console.error('Failed to resize window:', error)
+    })
   }
 
   return {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
+import { ref, watch, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import SideBar from './components/SideBar.vue'
 import NoteOutline from './components/NoteOutline.vue'
 import NoteSearch from './components/NoteSearch.vue'
@@ -98,15 +98,11 @@ const panelTab = ref('none')
 const isPanelOpen = ref(false)
 const isResizingPanel = ref(false)
 const isResetting = ref(false)
-const isWindowMorphing = ref(false)
-const isWindowMorphActive = ref(false)
-const windowMorphMode = ref<'opening' | 'closing'>('opening')
-const windowMorphScale = ref('1')
 let panelTransitionTimer: number | null = null
 let panelTransitionId = 0
-let windowMorphTimer: number | null = null
 
-const WINDOW_MORPH_MS = 240
+const PANEL_OPEN_ANIMATION_MS = 200
+const PANEL_CLOSE_ANIMATION_MS = 130
 const PANEL_TABS = ['outline', 'search', 'history', 'settings']
 
 const isPanelTab = (tab: string): boolean => PANEL_TABS.includes(tab)
@@ -125,37 +121,6 @@ const clearPanelTransitionTimer = (): void => {
     window.clearTimeout(panelTransitionTimer)
     panelTransitionTimer = null
   }
-}
-
-const clearWindowMorphTimer = (): void => {
-  if (windowMorphTimer !== null) {
-    window.clearTimeout(windowMorphTimer)
-    windowMorphTimer = null
-  }
-}
-
-const resetWindowMorph = (): void => {
-  clearWindowMorphTimer()
-  isWindowMorphing.value = false
-  isWindowMorphActive.value = false
-  windowMorphScale.value = '1'
-}
-
-const beginWindowMorph = (mode: 'opening' | 'closing', scale: number, after?: () => void): void => {
-  resetWindowMorph()
-  windowMorphMode.value = mode
-  windowMorphScale.value = Math.max(0.2, Math.min(1, scale)).toFixed(4)
-  isWindowMorphing.value = true
-  isWindowMorphActive.value = false
-
-  requestAnimationFrame(() => {
-    isWindowMorphActive.value = true
-  })
-
-  windowMorphTimer = window.setTimeout(() => {
-    after?.()
-    resetWindowMorph()
-  }, WINDOW_MORPH_MS)
 }
 
 const preventNativeContextMenu = (e: MouseEvent): void => {
@@ -233,7 +198,6 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleGlobalKeyDown, true)
   window.removeEventListener('contextmenu', preventNativeContextMenu, true)
   clearPanelTransitionTimer()
-  resetWindowMorph()
 })
 
 /**
@@ -420,7 +384,6 @@ const updateNoteContent = (content: string): void => {
 const resetSize = (): void => {
   clearPanelTransitionTimer()
   panelTransitionId += 1
-  resetWindowMorph()
   isResetting.value = true
   outlineWidth.value = 160
   searchWidth.value = 160
@@ -448,7 +411,7 @@ const resetSize = (): void => {
   }, 300)
 }
 
-const handleActiveTabChange = (nextTab: string): void => {
+const handleActiveTabChange = async (nextTab: string): Promise<void> => {
   if (isResetting.value) return
 
   clearPanelTransitionTimer()
@@ -461,48 +424,37 @@ const handleActiveTabChange = (nextTab: string): void => {
       return
     }
 
-    // 关闭面板：立即隐藏面板，然后执行窗口变形和调整
     const closingPanelWidth = getPanelWidth(panelTab.value)
     const transitionId = ++panelTransitionId
     const targetWidth = Math.max(320, window.outerWidth - closingPanelWidth)
-    const morphScale = targetWidth / window.outerWidth
 
-    // 立即隐藏面板（跳过 CSS 过渡）
     isPanelOpen.value = false
-    panelTab.value = 'none'
+    void animateResize(
+      targetWidth,
+      window.outerHeight,
+      window.screenX + closingPanelWidth,
+      window.screenY
+    )
 
-    // 执行窗口变形动画
-    beginWindowMorph('closing', morphScale, () => {
+    if (panelTransitionId !== transitionId) return
+    panelTransitionTimer = window.setTimeout(() => {
       if (panelTransitionId !== transitionId) return
-
-      animateResize(
-        targetWidth,
-        window.outerHeight,
-        window.screenX + closingPanelWidth,
-        window.screenY
-      )
+      panelTab.value = 'none'
       panelTransitionTimer = null
-    })
+    }, PANEL_CLOSE_ANIMATION_MS)
     return
   }
 
   const currentPanelWidth = isPanelTab(panelTab.value) ? getPanelWidth(panelTab.value) : 0
   const nextPanelWidth = getPanelWidth(nextTab)
   const widthDelta = nextPanelWidth - currentPanelWidth
-  const currentWindowWidth = window.outerWidth
-  const targetWindowWidth = currentWindowWidth + widthDelta
+  const targetWindowWidth = window.outerWidth + widthDelta
 
   activeTab.value = nextTab
   panelTab.value = nextTab
 
   if (widthDelta !== 0) {
-    if (widthDelta > 0) {
-      beginWindowMorph('opening', currentWindowWidth / targetWindowWidth)
-    } else {
-      beginWindowMorph('closing', targetWindowWidth / currentWindowWidth)
-    }
-
-    animateResize(
+    await animateResize(
       targetWindowWidth,
       window.outerHeight,
       window.screenX - widthDelta,
@@ -511,6 +463,7 @@ const handleActiveTabChange = (nextTab: string): void => {
   }
 
   const transitionId = ++panelTransitionId
+  await nextTick()
   requestAnimationFrame(() => {
     if (panelTransitionId === transitionId) {
       isPanelOpen.value = true
@@ -741,19 +694,7 @@ watch(theme, (newTheme) => {
 </script>
 
 <template>
-    <div
-      class="wrapper glass border-glow"
-      :class="[
-        `theme-${theme}`,
-        {
-          'window-morphing': isWindowMorphing,
-          'window-morph-active': isWindowMorphActive,
-          'window-morph-opening': windowMorphMode === 'opening',
-          'window-morph-closing': windowMorphMode === 'closing'
-        }
-      ]"
-      :style="{ '--window-morph-scale': windowMorphScale }"
-    >
+    <div class="wrapper glass border-glow" :class="`theme-${theme}`">
     <!-- 背景/边框感应区 -->
     <ResizeSensors :on-resize="startResize" :on-reset="resetSize" />
 
@@ -768,14 +709,18 @@ watch(theme, (newTheme) => {
       <div
         class="sidebar-panels"
         :class="{ open: isPanelOpen, resizing: isResizingPanel }"
-        :style="{ width: panelTab !== 'none' ? getPanelWidth(panelTab) + 'px' : '0px' }"
+        :style="{
+          width: panelTab !== 'none' && isPanelOpen ? getPanelWidth(panelTab) + 'px' : '0px',
+          '--panel-duration': isPanelOpen ? PANEL_OPEN_ANIMATION_MS + 'ms' : PANEL_CLOSE_ANIMATION_MS + 'ms',
+          '--panel-fade-duration': isPanelOpen ? '140ms' : '90ms'
+        }"
       >
         <Transition name="panel-fade">
           <NoteOutline
             v-if="panelTab === 'outline'"
             :key="'outline'"
             :headings="headings"
-            :is-open="isPanelOpen && panelTab === 'outline'"
+            :is-open="panelTab === 'outline'"
             :width="outlineWidth"
             @select="handleSelectHeading"
           />
@@ -785,7 +730,7 @@ watch(theme, (newTheme) => {
             :key="'search'"
             ref="searchRef"
             :active-note-id="activeNoteId"
-            :is-open="isPanelOpen && panelTab === 'search'"
+            :is-open="panelTab === 'search'"
             :width="searchWidth"
             @select-note="handleSelectNote"
           />
@@ -795,7 +740,7 @@ watch(theme, (newTheme) => {
             :key="'history'"
             ref="historyRef"
             :active-note-id="activeNoteId"
-            :is-open="isPanelOpen && panelTab === 'history'"
+            :is-open="panelTab === 'history'"
             :width="historyWidth"
             @select-note="handleSelectNote"
           />
@@ -804,14 +749,19 @@ watch(theme, (newTheme) => {
             v-else-if="panelTab === 'settings'"
             :key="'settings'"
             v-model:active-settings-tab="activeSettingsTab"
-            :is-open="isPanelOpen && panelTab === 'settings'"
+            :is-open="panelTab === 'settings'"
             :width="settingsWidth"
           />
         </Transition>
       </div>
 
       <!-- 拖拽调节区 -->
-      <div v-if="isPanelOpen && activeTab !== 'none'" class="outline-resizer" @mousedown="startPanelResize"></div>
+      <div
+        v-if="isPanelOpen && activeTab !== 'none'"
+        class="outline-resizer"
+        :style="{ left: panelTab !== 'none' ? 52 + getPanelWidth(panelTab) + 'px' : '52px' }"
+        @mousedown="startPanelResize"
+      ></div>
     </div>
 
     <!-- 右侧容器 -->
@@ -1059,34 +1009,6 @@ watch(theme, (newTheme) => {
   gap: 4px;
 }
 
-.wrapper.window-morphing {
-  transform-origin: right center;
-  transition:
-    transform 240ms cubic-bezier(0.16, 1, 0.3, 1),
-    filter 240ms cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: transform, filter;
-}
-
-.wrapper.window-morph-opening:not(.window-morph-active) {
-  transform: scaleX(var(--window-morph-scale));
-  filter: saturate(0.92) brightness(0.96);
-}
-
-.wrapper.window-morph-opening.window-morph-active {
-  transform: scaleX(1);
-  filter: saturate(1) brightness(1);
-}
-
-.wrapper.window-morph-closing {
-  transform: scaleX(1);
-  filter: saturate(1) brightness(1);
-}
-
-.wrapper.window-morph-closing.window-morph-active {
-  transform: scaleX(var(--window-morph-scale));
-  filter: saturate(0.94) brightness(0.97);
-}
-
 .main-container {
   flex: 1; /* 右侧区域自动填充剩余空间 */
   min-width: 0; /* 允许收缩，但靠内部元素撑开 */
@@ -1108,6 +1030,7 @@ watch(theme, (newTheme) => {
   overflow: visible;
   box-shadow: 4px 0 15px rgba(0, 0, 0, 0.05);
   z-index: 10;
+  position: relative;
 }
 
 .sidebar-wrapper.collapsed {
@@ -1121,19 +1044,23 @@ watch(theme, (newTheme) => {
 .sidebar-panels {
   display: flex;
   height: 100%;
+  flex-shrink: 0;
   overflow: hidden;
   position: relative;
   opacity: 0;
-  clip-path: inset(0 100% 0 0);
+  pointer-events: none;
+  z-index: 30;
+  box-shadow: none;
   transition:
-    clip-path 180ms linear,
-    opacity 180ms linear;
-  will-change: clip-path, opacity;
+    width var(--panel-duration, 160ms) cubic-bezier(0.22, 1, 0.36, 1),
+    opacity var(--panel-fade-duration, 140ms) ease,
+    margin var(--panel-duration, 160ms) cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: width, opacity;
 }
 
 .sidebar-panels.open {
   opacity: 1;
-  clip-path: inset(0 0 0 0);
+  pointer-events: auto;
 }
 
 .sidebar-panels.resizing {
@@ -1144,8 +1071,8 @@ watch(theme, (newTheme) => {
 .panel-fade-enter-active,
 .panel-fade-leave-active {
   transition:
-    opacity 120ms linear,
-    transform 120ms linear;
+    opacity 140ms ease,
+    transform 140ms cubic-bezier(0.16, 1, 0.3, 1);
   position: absolute;
   top: 0;
   left: 0;
@@ -1170,16 +1097,17 @@ watch(theme, (newTheme) => {
   width: 0;
   height: 40%;
   background: var(--divider-color);
-  align-self: center;
   border-radius: 1px;
   flex-shrink: 0;
+  align-self: center;
+  position: relative;
   opacity: 0;
   transform: scaleY(0.5);
+  z-index: 35;
   transition:
-    width 180ms linear,
-    opacity 180ms linear,
-    margin 180ms linear,
-    transform 180ms linear;
+    width 140ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 100ms ease,
+    transform 140ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .tab-separator.visible {
@@ -1190,12 +1118,14 @@ watch(theme, (newTheme) => {
 }
 
 .outline-resizer {
-  width: 4px;
+  width: 6px;
   cursor: col-resize;
-  flex-shrink: 0;
+  position: absolute;
+  top: 0;
+  bottom: 0;
   transition: background 0.2s;
-  z-index: 20;
-  margin-left: -2px; /* 使拖拽区中心对准边框 */
+  z-index: 40;
+  margin-left: -3px; /* 使拖拽区中心对准边框 */
   background: transparent;
 }
 

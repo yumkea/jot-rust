@@ -89,6 +89,7 @@ const indicatorY = computed(() => {
 .sidebar {
   width: 48px;
   flex-shrink: 0;
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
