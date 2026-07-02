@@ -9,6 +9,7 @@ interface NoteRecord {
   id: string
   title: string
   content: string
+  created_at: string
   updated_at: string
 }
 
@@ -138,7 +139,13 @@ const filteredNotes = computed<SearchResultRecord[]>(() => {
     })
 })
 
-const resultSummary = computed(() => `${filteredNotes.value.length}/${searchableNotes.value.length}`)
+const resultSummaryText = computed(() => {
+  const total = searchableNotes.value.length
+  const matched = filteredNotes.value.length
+  return searchQuery.value.trim()
+    ? `${matched}/${total} ${t('history.documents')}`
+    : `${total} ${t('history.documents')}`
+})
 
 const clearSearch = (): void => {
   searchQuery.value = ''
@@ -157,29 +164,20 @@ const clearSearch = (): void => {
         <div class="search-panel-head">
           <div class="search-title-block">
             <div class="search-title">{{ t('sidebar.search') }}</div>
-            <div class="search-meta">{{ resultSummary }}</div>
-          </div>
-          <div class="mode-switch">
-            <button
-              type="button"
-              class="mode-btn"
-              :class="{ active: searchMode === 'title' }"
-              @click="searchMode = 'title'"
-            >
-              {{ t('history.searchTitle') }}
-            </button>
-            <button
-              type="button"
-              class="mode-btn"
-              :class="{ active: searchMode === 'content' }"
-              @click="searchMode = 'content'"
-            >
-              {{ t('history.searchContent') }}
-            </button>
+            <div class="search-meta">{{ resultSummaryText }}</div>
           </div>
         </div>
 
         <div class="search-input-wrap">
+          <svg viewBox="0 0 24 24" class="search-icon">
+            <path
+              d="M10.8 18.2a7.4 7.4 0 1 1 0-14.8 7.4 7.4 0 0 1 0 14.8Zm5.3-1.9 4.1 4.1"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+          </svg>
           <input
             ref="searchInputRef"
             v-model="searchQuery"
@@ -187,7 +185,35 @@ const clearSearch = (): void => {
             class="search-input"
             :placeholder="t('history.searchPlaceholder')"
           />
-          <button v-if="searchQuery" type="button" class="clear-btn" @click="clearSearch">×</button>
+          <button v-if="searchQuery" type="button" class="clear-btn" :aria-label="t('history.searchClear')" @click="clearSearch">
+            <svg viewBox="0 0 24 24" class="clear-icon">
+              <path
+                d="M18 6 6 18M6 6l12 12"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+              />
+            </svg>
+          </button>
+        </div>
+        <div class="mode-switch">
+          <button
+            type="button"
+            class="mode-btn"
+            :class="{ active: searchMode === 'title' }"
+            @click="searchMode = 'title'"
+          >
+            {{ t('history.searchTitle') }}
+          </button>
+          <button
+            type="button"
+            class="mode-btn"
+            :class="{ active: searchMode === 'content' }"
+            @click="searchMode = 'content'"
+          >
+            {{ t('history.searchContent') }}
+          </button>
         </div>
       </div>
 
@@ -244,7 +270,7 @@ const clearSearch = (): void => {
 .search-container {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   padding: 0 10px;
   box-sizing: border-box;
 }
@@ -252,12 +278,8 @@ const clearSearch = (): void => {
 .search-bar {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: var(--bg-main);
-  padding-bottom: 10px;
+  gap: 9px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -279,7 +301,6 @@ const clearSearch = (): void => {
   font-size: var(--panel-font-size-label);
   font-weight: 500;
   color: var(--text-main);
-  letter-spacing: 0.02em;
 }
 
 .search-meta {
@@ -289,17 +310,30 @@ const clearSearch = (): void => {
 
 .search-input-wrap {
   position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  top: 50%;
+  left: 9px;
+  width: 14px;
+  height: 14px;
+  transform: translateY(-50%);
+  color: var(--text-low);
+  pointer-events: none;
 }
 
 .search-input {
   width: 100%;
-  height: 30px;
+  height: 32px;
   border: 1px solid var(--border-color);
-  border-radius: 9px;
-  background: var(--hover-bg);
+  border-radius: 6px;
+  background: var(--bg-main);
   color: var(--text-main);
   font-size: 12px;
-  padding: 0 30px 0 10px;
+  padding: 0 30px 0 30px;
   box-sizing: border-box;
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
@@ -307,8 +341,8 @@ const clearSearch = (): void => {
 
 .search-input:focus {
   border-color: var(--border-active);
-  box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.12);
-  background: var(--bg-main);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.1);
+  background: var(--hover-bg);
 }
 
 .search-input::placeholder {
@@ -318,54 +352,60 @@ const clearSearch = (): void => {
 .clear-btn {
   position: absolute;
   top: 50%;
-  right: 7px;
+  right: 6px;
   transform: translateY(-50%);
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border: none;
-  border-radius: 999px;
-  background: rgba(var(--accent-rgb), 0.12);
-  color: var(--text-secondary);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-low);
   cursor: pointer;
-  font-size: 13px;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clear-icon {
+  width: 12px;
+  height: 12px;
 }
 
 .clear-btn:hover {
-  background: rgba(var(--accent-rgb), 0.18);
+  background: var(--hover-bg);
   color: var(--text-main);
 }
 
 .mode-switch {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   align-items: center;
-  gap: 4px;
-  border: 1px solid var(--border-color);
-  border-radius: 999px;
-  padding: 2px;
-  width: fit-content;
-  background: var(--hover-bg);
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .mode-btn {
-  height: 22px;
-  min-width: 38px;
-  border: none;
-  border-radius: 999px;
+  height: 24px;
+  min-width: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
   background: transparent;
   color: var(--text-low);
   font-size: 10px;
   cursor: pointer;
   padding: 0 8px;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .mode-btn:hover {
+  border-color: var(--border-active);
   color: var(--text-secondary);
 }
 
 .mode-btn.active {
-  background: rgba(var(--accent-rgb), 0.14);
+  border-color: rgba(var(--accent-rgb), 0.38);
+  background: rgba(var(--accent-rgb), 0.1);
   color: var(--text-main);
 }
 
@@ -380,8 +420,8 @@ const clearSearch = (): void => {
 
 .result-item {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: flex-start;
+  gap: 8px;
   padding: 6px 6px 6px 8px;
   border-radius: 6px;
   cursor: pointer;
@@ -472,6 +512,7 @@ const clearSearch = (): void => {
 .result-arrow {
   width: 12px;
   height: 12px;
+  margin-top: 28px;
   color: var(--text-main);
   opacity: 0;
   transform: translateX(-10px);

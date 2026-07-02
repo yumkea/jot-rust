@@ -1,0 +1,7 @@
+[project]
+name = "jot-resource-tools"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "cairosvg>=2.7.1",
+]

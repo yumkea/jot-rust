@@ -27,6 +27,21 @@ const translations: Record<Language, Record<string, string>> = {
     'settings.language': 'Language',
     'settings.language.en': 'English',
     'settings.language.zh': '中文',
+    'settings.storagePath': 'Storage Folder',
+    'settings.storagePath.hint': 'Markdown files are saved here',
+    'settings.storagePath.choose': 'Choose',
+    'settings.storagePath.applying': 'Migrating',
+    'settings.storagePath.empty': 'No folder selected',
+    'settings.storagePath.migration': 'Existing notes are copied to the selected folder automatically.',
+    'settings.storagePath.dialogTitle': 'Choose notes folder',
+    'settings.legacyMigration': 'Migrate Legacy Database',
+    'settings.legacyMigration.hint': 'Convert notes from an old jot.db into Markdown files',
+    'settings.legacyMigration.choose': 'Select DB',
+    'settings.legacyMigration.running': 'Migrating',
+    'settings.legacyMigration.keepDb': 'The selected database is only read and will not be deleted.',
+    'settings.legacyMigration.dialogTitle': 'Choose old jot.db file',
+    'settings.legacyMigration.done': 'Migration complete: {count} notes imported.',
+    'settings.legacyMigration.failed': 'Migration failed. Please check the selected database.',
 
     // Sidebar
     'sidebar.outline': 'Outline',
@@ -56,6 +71,8 @@ const translations: Record<Language, Record<string, string>> = {
     'history.searchTitle': 'Title',
     'history.searchContent': 'Content',
     'history.searchEmpty': 'No results',
+    'history.searchClear': 'Clear search',
+    'history.documents': 'docs',
 
     // Editor
     'editor.placeholder': 'Fleeting ideas, captured...',
@@ -86,7 +103,9 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.saving': 'Saving...',
     'footer.saved': 'Saved at',
     'footer.updated': 'updated at',
+    'footer.saveFailed': 'Save failed',
     'footer.chars': 'chars',
+    'footer.words': 'words',
 
     // Tooltips
     'titlebar.newNote': 'New Note',
@@ -117,6 +136,21 @@ const translations: Record<Language, Record<string, string>> = {
     'settings.language': '语言',
     'settings.language.en': 'English',
     'settings.language.zh': '中文',
+    'settings.storagePath': '存储位置',
+    'settings.storagePath.hint': 'Markdown 文件会保存在这里',
+    'settings.storagePath.choose': '选择',
+    'settings.storagePath.applying': '迁移中',
+    'settings.storagePath.empty': '未选择文件夹',
+    'settings.storagePath.migration': '选择新目录后，会自动复制已有笔记到新目录。',
+    'settings.storagePath.dialogTitle': '选择笔记存储文件夹',
+    'settings.legacyMigration': '迁移旧数据库',
+    'settings.legacyMigration.hint': '将旧版本 jot.db 中的笔记转换为 Markdown 文件',
+    'settings.legacyMigration.choose': '选择 DB',
+    'settings.legacyMigration.running': '迁移中',
+    'settings.legacyMigration.keepDb': '选择的数据库只会被读取，不会删除或修改。',
+    'settings.legacyMigration.dialogTitle': '选择旧版本 jot.db 文件',
+    'settings.legacyMigration.done': '迁移完成：已导入 {count} 条笔记。',
+    'settings.legacyMigration.failed': '迁移失败，请检查选择的数据库文件。',
 
     // 侧边栏
     'sidebar.outline': '大纲',
@@ -146,6 +180,8 @@ const translations: Record<Language, Record<string, string>> = {
     'history.searchTitle': '标题',
     'history.searchContent': '正文',
     'history.searchEmpty': '无搜索结果',
+    'history.searchClear': '清除搜索',
+    'history.documents': '篇',
 
     // 编辑器
     'editor.placeholder': '灵感闪现，即刻记录...',
@@ -176,7 +212,9 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.saving': '保存中...',
     'footer.saved': '已保存于',
     'footer.updated': '更新于',
+    'footer.saveFailed': '保存失败',
     'footer.chars': '字符',
+    'footer.words': '词',
 
     // 工具提示
     'titlebar.newNote': '新建笔记',
@@ -221,7 +259,11 @@ export function useI18n(): {
  * 获取日期标签的本地化格式
  */
 export function getLocalizedDateLabel(dateStr: string, language: Language): string {
-  const date = new Date(dateStr)
+  const datePart = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/)?.[0]
+  if (!datePart) return dateStr
+
+  const [year, month, day] = datePart.split('-').map(Number)
+  const date = new Date(year, month - 1, day)
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const yesterday = new Date(today)
@@ -236,5 +278,5 @@ export function getLocalizedDateLabel(dateStr: string, language: Language): stri
     return translations[language]['history.yesterday']
   }
 
-  return dateStr.split(' ')[0]
+  return datePart
 }

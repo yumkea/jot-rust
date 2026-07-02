@@ -9,6 +9,7 @@ interface NoteRecord {
   id: string
   title: string
   content: string
+  created_at: string
   updated_at: string
 }
 
@@ -45,8 +46,8 @@ defineExpose({
 const formatDateLabel = (dateStr: string): string => getLocalizedDateLabel(dateStr, language.value)
 
 const formatTime = (dateStr: string): string => {
-  const timePart = dateStr.split(' ')[1]
-  return timePart ? timePart.slice(0, 5) : '00:00'
+  const match = dateStr.match(/(?:\s|T)(\d{2}):(\d{2})/)
+  return match ? `${match[1]}:${match[2]}` : '00:00'
 }
 
 const groupedNotes = computed(() => {
@@ -85,6 +86,10 @@ const selectNote = (note: { id: string; title: string; content: string }): void 
     :style="{ width: isOpen ? (width ? width + 'px' : '160px') : '0' }"
   >
     <div class="history-container" :style="{ width: width ? width + 'px' : '160px' }">
+      <div class="history-panel-head">
+        <div class="history-title">{{ t('sidebar.history') }}</div>
+        <div class="history-count">{{ allNotes.length }} {{ t('history.documents') }}</div>
+      </div>
       <div v-for="group in groupedNotes" :key="group.label" class="history-group">
         <div class="group-header" @click="toggleGroup(group.label)">
           <span class="group-label">{{ group.label }}</span>
@@ -150,6 +155,29 @@ const selectNote = (note: { id: string; title: string; content: string }): void 
   gap: 8px;
   padding: 0 10px;
   box-sizing: border-box;
+}
+
+.history-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.history-title {
+  min-width: 0;
+  font-size: var(--panel-font-size-label);
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.history-count {
+  flex-shrink: 0;
+  font-size: var(--panel-font-size-small);
+  color: var(--text-low);
+  font-family: ui-monospace, SFMono-Regular, monospace;
 }
 
 .history-group {

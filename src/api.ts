@@ -4,6 +4,7 @@ export interface Note {
   id: string;
   title: string;
   content: string;
+  created_at: string;
   updated_at: string;
 }
 
@@ -44,6 +45,14 @@ export async function saveSetting(
 
 export async function getStoragePath(): Promise<string> {
   return invoke("get_storage_path") as Promise<string>;
+}
+
+export async function setNotesDirectory(path: string): Promise<{ success: boolean; path: string }> {
+  return invoke("set_notes_directory", { path }) as Promise<{ success: boolean; path: string }>;
+}
+
+export async function migrateLegacyDatabase(dbPath: string): Promise<{ success: boolean; migrated: number; dbPath: string }> {
+  return invoke("migrate_legacy_database", { dbPath }) as Promise<{ success: boolean; migrated: number; dbPath: string }>;
 }
 
 export async function setAlwaysOnTop(alwaysOnTop: boolean): Promise<void> {

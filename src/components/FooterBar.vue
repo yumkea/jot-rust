@@ -1,22 +1,42 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
+import { computed } from 'vue'
 import iconResize from '../assets/icons/resize.svg'
 
 const props = withDefaults(defineProps<{
   onResize: (direction: string, e: MouseEvent) => void
   onReset: () => void
   lastSavedTime?: string
+  selectedWordCount?: number
+  wordCount?: number
   t?: (key: string) => string
 }>(), {
+  selectedWordCount: 0,
+  wordCount: 0,
   t: (key: string) => key
+})
+
+const saveStatusText = computed(() => {
+  if (!props.lastSavedTime) return ''
+  if (props.lastSavedTime === '__SAVE_FAILED__') return props.t('footer.saveFailed')
+  return `${props.t('footer.updated')} ${props.lastSavedTime}`
+})
+
+const wordStatusText = computed(() => {
+  if (props.selectedWordCount > 0) {
+    return `${props.selectedWordCount} / ${props.wordCount} ${props.t('footer.words')}`
+  }
+  return `${props.wordCount} ${props.t('footer.words')}`
 })
 </script>
 
 <template>
   <footer class="footer-bar no-drag">
     <div class="status-container">
-      <span v-if="lastSavedTime" class="save-time">
-        {{ props.t('footer.updated') }} {{ lastSavedTime }}
+      <span v-if="saveStatusText" class="save-time">
+        {{ saveStatusText }}
       </span>
+      <span v-if="saveStatusText" class="status-divider"></span>
+      <span class="word-count">{{ wordStatusText }}</span>
     </div>
     <div class="resize-handle" @mousedown="onResize('se', $event)" @dblclick="onReset">
       <img :src="iconResize" class="icon-resize" draggable="false" />
@@ -45,10 +65,18 @@ const props = withDefaults(defineProps<{
   user-select: none;
 }
 
+.word-count,
 .save-time {
   font-size: 11px; /* 稍微调大一点 */
   color: var(--text-low);
   font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
+.status-divider {
+  width: 1px;
+  height: 10px;
+  background: var(--text-low);
+  opacity: 0.45;
 }
 
 .resize-handle {

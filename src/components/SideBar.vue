@@ -4,6 +4,7 @@ import iconOutline from '../assets/icons/list.svg'
 import iconSearch from '../assets/icons/search.svg'
 import iconHistory from '../assets/icons/history.svg'
 import iconSettings from '../assets/icons/settings.svg'
+import logoJot from '../../resources/jot.svg'
 
 const props = defineProps<{
   activeTab: string
@@ -80,7 +81,7 @@ const indicatorY = computed(() => {
     </div>
 
     <div class="bottom-logo">
-      <span class="logo-text">Jot</span>
+      <img :src="logoJot" class="logo-image" alt="Jot" draggable="false" />
     </div>
   </aside>
 </template>
@@ -206,20 +207,24 @@ const indicatorY = computed(() => {
   transition-delay: 0.4s;
 }
 
-.logo-text {
-  font-family: 'Comic Sans MS', cursive, sans-serif;
-  font-size: 14px;
-  color: var(--text-main);
-  font-weight: 800;
-  letter-spacing: 1px;
+.bottom-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-image {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
   opacity: 0.9;
   transition: all 0.3s ease;
   user-select: none;
 }
 
-.sidebar:hover .logo-text {
+.sidebar:hover .logo-image {
   opacity: 1;
-  text-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+  transform: scale(1.04);
 }
 
 .no-drag {

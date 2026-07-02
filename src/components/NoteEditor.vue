@@ -78,6 +78,7 @@ const emit = defineEmits<{
   (e: 'save-start'): void
   (e: 'save-success', time: string): void
   (e: 'update-content', content: string): void
+  (e: 'update-selection', content: string): void
   (e: 'update-headings', headings: HeadingItem[]): void
 }>()
 
@@ -94,6 +95,12 @@ const getHeadings = (editorInstance: Editor): HeadingItem[] => {
     }
   })
   return headings
+}
+
+const getSelectedText = (editorInstance: Editor): string => {
+  const { from, to, empty } = editorInstance.state.selection
+  if (empty) return ''
+  return editorInstance.state.doc.textBetween(from, to, ' ')
 }
 
 /**
@@ -283,6 +290,7 @@ const editor = useEditor({
   onTransaction: ({ editor: editorInstance }) => {
     const { state } = editorInstance
     const { from, empty } = state.selection
+    emit('update-selection', getSelectedText(editorInstance))
     if (!empty) {
       showSlashMenu.value = false
       return
@@ -516,7 +524,7 @@ const saveNow = async (content: string): Promise<void> => {
     emit('save-success', now.toLocaleTimeString('zh-CN', { hour12: false }))
   } catch (error) {
     console.error('Failed to save note:', error)
-    emit('save-success', 'Save failed')
+    emit('save-success', '__SAVE_FAILED__')
   }
 }
 

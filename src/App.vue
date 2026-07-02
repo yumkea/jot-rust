@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted, computed, nextTick } from 'vue'
+import { open } from '@tauri-apps/plugin-dialog'
 import SideBar from './components/SideBar.vue'
 import NoteOutline from './components/NoteOutline.vue'
 import NoteSearch from './components/NoteSearch.vue'
@@ -49,6 +50,7 @@ const historyRef = ref<HistoryInstance | null>(null)
 const searchRef = ref<HistoryInstance | null>(null)
 const notes = ref<Note[]>([])
 const activeNoteId = ref('')
+const selectedText = ref('')
 const activeSettingsTab = ref('general')
 const theme = ref('dark')
 const DEFAULT_ACCENT_COLOR = '#13b2ed'
@@ -56,6 +58,10 @@ const accentColor = ref(DEFAULT_ACCENT_COLOR)
 const isAutoLaunch = ref(false)
 const closeAction = ref<'quit' | 'hide'>('hide')
 const shortcutInput = ref<HTMLInputElement | null>(null)
+const storagePath = ref('')
+const isApplyingStoragePath = ref(false)
+const isMigratingLegacyDb = ref(false)
+const migrationMessage = ref('')
 
 // --- Shortcuts State ---
 const defaultShortcuts = {
@@ -166,6 +172,12 @@ onMounted(async () => {
     }
   } catch (e) {
     console.error('Failed to load settings:', e)
+  }
+
+  try {
+    storagePath.value = await api.getStoragePath()
+  } catch (e) {
+    console.error('Failed to load storage path:', e)
   }
 
   // 加载开机自启设置
@@ -378,6 +390,10 @@ const updateNoteContent = (content: string): void => {
   if (note) note.content = content
 }
 
+const updateSelectedText = (content: string): void => {
+  selectedText.value = content
+}
+
 /**
  * 重置窗口到默认尺寸 (502x350)
  */
@@ -517,8 +533,13 @@ const startPanelResize = (e: MouseEvent): void => {
  * 置顶切换
  */
 const togglePin = async (): Promise<void> => {
-  isPinned.value = !isPinned.value
-  await api.setAlwaysOnTop(isPinned.value)
+  const nextPinned = !isPinned.value
+  try {
+    await api.setAlwaysOnTop(nextPinned)
+    isPinned.value = nextPinned
+  } catch (e) {
+    console.error('Failed to toggle always on top:', e)
+  }
 }
 
 // --- 保存与状态同步 ---
@@ -541,6 +562,7 @@ const handleSelectHeading = (pos: number): void => {
  * 从列表中选择笔记
  */
 const handleSelectNote = (note: { id: string; title: string; content: string }): void => {
+  selectedText.value = ''
   const existingNote = notes.value.find((n) => n.id === note.id)
   if (existingNote) {
     activeNoteId.value = note.id
@@ -553,6 +575,11 @@ const handleSelectNote = (note: { id: string; title: string; content: string }):
     })
     activeNoteId.value = note.id
   }
+}
+
+const switchActiveNote = (id: string): void => {
+  selectedText.value = ''
+  activeNoteId.value = id
 }
 
 const renameNote = (id: string, newTitle: string): void => {
@@ -595,6 +622,83 @@ const toggleAutoLaunch = async (): Promise<void> => {
 const toggleCloseAction = async (): Promise<void> => {
   closeAction.value = closeAction.value === 'hide' ? 'quit' : 'hide'
   await api.saveSetting('closeAction', closeAction.value)
+}
+
+const migrateToStoragePath = async (nextPath: string): Promise<void> => {
+  if (!nextPath || nextPath === storagePath.value || isApplyingStoragePath.value) return
+
+  isApplyingStoragePath.value = true
+  try {
+    const result = await api.setNotesDirectory(nextPath)
+    storagePath.value = result.path
+
+    const savedNotes = await api.listNotes()
+    notes.value = savedNotes.length > 0 ? [savedNotes[0]] : []
+    activeNoteId.value = savedNotes[0]?.id || ''
+    if (notes.value.length === 0) addNote()
+    historyRef.value?.refresh?.()
+    searchRef.value?.refresh?.()
+  } catch (e) {
+    console.error('Failed to update storage path:', e)
+  } finally {
+    isApplyingStoragePath.value = false
+  }
+}
+
+const chooseStoragePath = async (): Promise<void> => {
+  if (isApplyingStoragePath.value) return
+
+  try {
+    const selected = await open({
+      directory: true,
+      multiple: false,
+      defaultPath: storagePath.value || undefined,
+      title: t('settings.storagePath.dialogTitle')
+    })
+
+    if (typeof selected === 'string') {
+      await migrateToStoragePath(selected)
+    }
+  } catch (e) {
+    console.error('Failed to choose storage path:', e)
+  }
+}
+
+const refreshNotesAfterMigration = async (): Promise<void> => {
+  const savedNotes = await api.listNotes()
+  notes.value = savedNotes.length > 0 ? [savedNotes[0]] : []
+  activeNoteId.value = savedNotes[0]?.id || ''
+  if (notes.value.length === 0) addNote()
+  historyRef.value?.refresh?.()
+  searchRef.value?.refresh?.()
+}
+
+const chooseLegacyDatabase = async (): Promise<void> => {
+  if (isMigratingLegacyDb.value) return
+
+  try {
+    const selected = await open({
+      directory: false,
+      multiple: false,
+      filters: [
+        { name: 'SQLite Database', extensions: ['db', 'sqlite', 'sqlite3'] }
+      ],
+      title: t('settings.legacyMigration.dialogTitle')
+    })
+
+    if (typeof selected !== 'string') return
+
+    isMigratingLegacyDb.value = true
+    migrationMessage.value = ''
+    const result = await api.migrateLegacyDatabase(selected)
+    await refreshNotesAfterMigration()
+    migrationMessage.value = t('settings.legacyMigration.done').replace('{count}', String(result.migrated))
+  } catch (e) {
+    console.error('Failed to migrate legacy database:', e)
+    migrationMessage.value = t('settings.legacyMigration.failed')
+  } finally {
+    isMigratingLegacyDb.value = false
+  }
 }
 
 /**
@@ -687,6 +791,26 @@ const toggleLanguage = async (): Promise<void> => {
 
 const activeNote = computed(() => notes.value.find((n) => n.id === activeNoteId.value))
 
+const countWords = (content: string): number => {
+  const plainText = content
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&[a-z\d#]+;/gi, ' ')
+    .replace(/[`*_~>#\[\]()!|-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (!plainText) return 0
+
+  const cjkMatches = plainText.match(/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/gu) || []
+  const latinMatches = plainText.match(/[A-Za-z0-9]+(?:[.'_-][A-Za-z0-9]+)*/g) || []
+
+  return cjkMatches.length + latinMatches.length
+}
+
+const activeWordCount = computed(() => countWords(activeNote.value?.content || ''))
+const selectedWordCount = computed(() => countWords(selectedText.value))
+
 // 同步主题类到 html 元素，使 Teleport 到 body 的元素也能继承主题变量
 watch(theme, (newTheme) => {
   document.documentElement.classList.toggle('theme-light', newTheme === 'light')
@@ -776,7 +900,7 @@ watch(theme, (newTheme) => {
           @add-note="addNote"
           @close-all="closeAllNotes"
           @close-note="closeNote"
-          @switch-note="(id) => (activeNoteId = id)"
+          @switch-note="switchActiveNote"
           @rename-note="renameNote"
         />
         <NoteEditor
@@ -795,12 +919,15 @@ watch(theme, (newTheme) => {
           @save-start="handleSaveStart"
           @save-success="handleSaveSuccess"
           @update-content="updateNoteContent"
+          @update-selection="updateSelectedText"
           @update-headings="handleUpdateHeadings"
         />
         <FooterBar
           :on-resize="startResize"
           :on-reset="resetSize"
           :last-saved-time="lastSavedTime"
+          :selected-word-count="selectedWordCount"
+          :word-count="activeWordCount"
           :t="t"
         />
       </template>
@@ -854,6 +981,40 @@ watch(theme, (newTheme) => {
               <span class="shortcut-label">{{ t('settings.closeAction') }}</span>
               <div class="shortcut-group">
                 <span class="global-badge">{{ closeAction === 'hide' ? t('settings.closeAction.hide') : t('settings.closeAction.quit') }}</span>
+              </div>
+            </div>
+            <div class="storage-card">
+              <div class="storage-card-head">
+                <div class="storage-title-block">
+                  <span class="shortcut-label">{{ t('settings.storagePath') }}</span>
+                  <span class="storage-subtitle">{{ t('settings.storagePath.hint') }}</span>
+                </div>
+                <button class="storage-path-button" :disabled="isApplyingStoragePath" @click="chooseStoragePath">
+                  {{ isApplyingStoragePath ? t('settings.storagePath.applying') : t('settings.storagePath.choose') }}
+                </button>
+              </div>
+              <button class="storage-path-display" :disabled="isApplyingStoragePath" @click="chooseStoragePath">
+                <span class="storage-path-text">{{ storagePath || t('settings.storagePath.empty') }}</span>
+              </button>
+              <div class="storage-migration-note">
+                {{ t('settings.storagePath.migration') }}
+              </div>
+            </div>
+            <div class="storage-card">
+              <div class="storage-card-head">
+                <div class="storage-title-block">
+                  <span class="shortcut-label">{{ t('settings.legacyMigration') }}</span>
+                  <span class="storage-subtitle">{{ t('settings.legacyMigration.hint') }}</span>
+                </div>
+                <button class="storage-path-button" :disabled="isMigratingLegacyDb" @click="chooseLegacyDatabase">
+                  {{ isMigratingLegacyDb ? t('settings.legacyMigration.running') : t('settings.legacyMigration.choose') }}
+                </button>
+              </div>
+              <div class="storage-migration-note">
+                {{ t('settings.legacyMigration.keepDb') }}
+              </div>
+              <div v-if="migrationMessage" class="storage-result">
+                {{ migrationMessage }}
               </div>
             </div>
           </div>
@@ -991,9 +1152,9 @@ watch(theme, (newTheme) => {
 */
 .wrapper {
   position: relative;
-  height: 100vh;
-  width: 100vw;
-  margin: 0;
+  height: calc(100vh - 2px);
+  width: calc(100vw - 2px);
+  margin: 1px;
   display: flex;
   flex-direction: row;
   border-radius: 8px;
@@ -1004,7 +1165,7 @@ watch(theme, (newTheme) => {
   background: rgba(255, 255, 255, 0.1) !important;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1.5px solid rgba(255, 255, 255, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
   gap: 4px;
 }
@@ -1259,6 +1420,93 @@ watch(theme, (newTheme) => {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.storage-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border-active);
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--recording-bg), transparent);
+}
+
+.storage-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.storage-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.storage-subtitle,
+.storage-migration-note {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-low);
+}
+
+.storage-result {
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
+  border-radius: 6px;
+  background: rgba(var(--accent-rgb), 0.1);
+  color: var(--text-secondary);
+  padding: 7px 9px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.storage-path-display {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--kbd-bg);
+  color: var(--text-main);
+  padding: 7px 9px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.storage-path-display:hover {
+  border-color: var(--accent-color);
+}
+
+.storage-path-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.storage-path-button {
+  height: 30px;
+  border: 1px solid rgba(var(--accent-rgb), 0.45);
+  border-radius: 6px;
+  background: rgba(var(--accent-rgb), 0.12);
+  color: var(--text-main);
+  padding: 0 12px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.storage-path-button:hover {
+  background: rgba(var(--accent-rgb), 0.18);
+}
+
+.storage-path-button:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .global-badge {

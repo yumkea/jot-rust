@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1254" height="1254" viewBox="0 0 1254 1254">
+  <rect width="1254" height="1254" rx="170" ry="170" fill="#000000"/>
+
+  <g fill="none" stroke="#FFFFFF" stroke-width="118" stroke-linecap="round" stroke-linejoin="round">
+    
+    <!-- J -->
+    <path d="
+      M 246 318
+      H 490
+
+      M 372 318
+      V 708
+
+      M 372 708
+      C 372 822, 322 904, 244 904
+      C 170 904, 112 850, 112 772
+    "/>
+
+    <!-- o：稍微左移，给 t 留出空间 -->
+    <ellipse cx="670" cy="690" rx="128" ry="188"/>
+
+    <!-- t：整体稍微右移，横杠左侧收一点 -->
+    <path d="
+      M 1015 356
+      V 878
+
+      M 940 502
+      H 1138
+    "/>
+  </g>
+</svg>
