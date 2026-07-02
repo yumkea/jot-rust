@@ -20,7 +20,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'select-note', note: { id: string; title: string; content: string }): void
+  (e: 'select-note', note: NoteRecord): void
 }>()
 
 const allNotes = ref<NoteRecord[]>([])
@@ -53,7 +53,7 @@ const formatTime = (dateStr: string): string => {
 const groupedNotes = computed(() => {
   const groups: Record<
     string,
-    { label: string; isExpanded: boolean; records: { id: string; time: string; title: string; content: string }[] }
+    { label: string; isExpanded: boolean; records: (NoteRecord & { time: string })[] }
   > = {}
 
   allNotes.value.forEach((rec) => {
@@ -62,7 +62,7 @@ const groupedNotes = computed(() => {
       groups[label] = { label, isExpanded: expandedGroups.value[label] ?? true, records: [] }
     }
     groups[label].records.push({
-      id: rec.id,
+      ...rec,
       time: formatTime(rec.updated_at),
       title: rec.title || t('editor.untitled'),
       content: rec.content
@@ -76,7 +76,7 @@ const toggleGroup = (label: string): void => {
   expandedGroups.value[label] = !(expandedGroups.value[label] ?? true)
 }
 
-const selectNote = (note: { id: string; title: string; content: string }): void => emit('select-note', note)
+const selectNote = (note: NoteRecord): void => emit('select-note', note)
 </script>
 
 <template>

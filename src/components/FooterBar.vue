@@ -8,10 +8,14 @@ const props = withDefaults(defineProps<{
   lastSavedTime?: string
   selectedWordCount?: number
   wordCount?: number
+  selectedCharCount?: number
+  charCount?: number
   t?: (key: string) => string
 }>(), {
   selectedWordCount: 0,
   wordCount: 0,
+  selectedCharCount: 0,
+  charCount: 0,
   t: (key: string) => key
 })
 
@@ -27,6 +31,13 @@ const wordStatusText = computed(() => {
   }
   return `${props.wordCount} ${props.t('footer.words')}`
 })
+
+const charStatusText = computed(() => {
+  if (props.selectedCharCount > 0) {
+    return `${props.selectedCharCount} / ${props.charCount} ${props.t('footer.chars')}`
+  }
+  return `${props.charCount} ${props.t('footer.chars')}`
+})
 </script>
 
 <template>
@@ -37,6 +48,8 @@ const wordStatusText = computed(() => {
       </span>
       <span v-if="saveStatusText" class="status-divider"></span>
       <span class="word-count">{{ wordStatusText }}</span>
+      <span class="status-divider"></span>
+      <span class="char-count">{{ charStatusText }}</span>
     </div>
     <div class="resize-handle" @mousedown="onResize('se', $event)" @dblclick="onReset">
       <img :src="iconResize" class="icon-resize" draggable="false" />
@@ -66,6 +79,7 @@ const wordStatusText = computed(() => {
 }
 
 .word-count,
+.char-count,
 .save-time {
   font-size: 11px; /* 稍微调大一点 */
   color: var(--text-low);

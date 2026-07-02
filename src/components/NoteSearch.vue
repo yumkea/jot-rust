@@ -30,7 +30,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'select-note', note: { id: string; title: string; content: string }): void
+  (e: 'select-note', note: NoteRecord): void
 }>()
 
 const allNotes = ref<NoteRecord[]>([])
@@ -228,7 +228,7 @@ const clearSearch = (): void => {
           :key="item.id"
           class="result-item"
           :class="{ 'is-active': item.id === activeNoteId }"
-          @click="emit('select-note', { id: item.id, title: item.title, content: item.content })"
+          @click="emit('select-note', item)"
         >
           <div class="result-copy">
             <div class="result-meta">

@@ -18,6 +18,21 @@ export default defineConfig(async () => ({
       ignored: ["**/src-tauri/**"],
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return;
+          if (id.includes("@tiptap") || id.includes("prosemirror")) return "editor";
+          if (id.includes("katex")) return "math";
+          if (id.includes("markdown-it")) return "markdown";
+          if (id.includes("@tauri-apps")) return "tauri";
+          if (id.includes("vue")) return "vue";
+          return "vendor";
+        },
+      },
+    },
+  },
   test: {
     environment: "jsdom",
   },

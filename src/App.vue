@@ -30,6 +30,8 @@ interface Note {
   id: string
   title: string
   content: string
+  created_at?: string
+  updated_at?: string
 }
 
 interface EditorInstance {
@@ -144,6 +146,7 @@ onMounted(async () => {
     if (savedNotes.length > 0) {
       notes.value = [savedNotes[0]]
       activeNoteId.value = savedNotes[0].id
+      syncFooterTimeForActiveNote()
     } else {
       addNote()
     }
@@ -305,6 +308,7 @@ const addNote = (): void => {
   }
   notes.value.push(newNote)
   activeNoteId.value = newNote.id
+  lastSavedTime.value = ''
 }
 
 /**
@@ -379,6 +383,7 @@ const closeNote = async (id: string): Promise<void> => {
   // 处理 activeNoteId
   if (activeNoteId.value === id) {
     activeNoteId.value = notes.value[Math.max(0, index - 1)].id
+    syncFooterTimeForActiveNote()
   }
 }
 
@@ -545,9 +550,26 @@ const togglePin = async (): Promise<void> => {
 // --- 保存与状态同步 ---
 const lastSavedTime = ref('')
 
+const formatUpdatedAtForFooter = (value?: string): string => {
+  if (!value) return ''
+  const match = value.match(/(?:\s|T)(\d{2}):(\d{2})(?::(\d{2}))?/)
+  if (match) return `${match[1]}:${match[2]}:${match[3] ?? '00'}`
+  return value
+}
+
+const syncFooterTimeForActiveNote = (): void => {
+  const note = notes.value.find((n) => n.id === activeNoteId.value)
+  lastSavedTime.value = formatUpdatedAtForFooter(note?.updated_at)
+}
+
 const handleSaveStart = (): void => {}
 const handleSaveSuccess = (time: string): void => {
   lastSavedTime.value = time
+  const note = notes.value.find((n) => n.id === activeNoteId.value)
+  if (note && time !== '__SAVE_FAILED__') {
+    const datePart = new Date().toLocaleDateString('sv-SE')
+    note.updated_at = `${datePart} ${time}`
+  }
   historyRef.value?.refresh?.()
   searchRef.value?.refresh?.()
 }
@@ -561,25 +583,24 @@ const handleSelectHeading = (pos: number): void => {
 /**
  * 从列表中选择笔记
  */
-const handleSelectNote = (note: { id: string; title: string; content: string }): void => {
+const handleSelectNote = (note: Note): void => {
   selectedText.value = ''
   const existingNote = notes.value.find((n) => n.id === note.id)
   if (existingNote) {
+    Object.assign(existingNote, note)
     activeNoteId.value = note.id
   } else {
     // 如果该笔记未在当前标签页中，则添加它
-    notes.value.push({
-      id: note.id,
-      title: note.title,
-      content: note.content
-    })
+    notes.value.push(note)
     activeNoteId.value = note.id
   }
+  syncFooterTimeForActiveNote()
 }
 
 const switchActiveNote = (id: string): void => {
   selectedText.value = ''
   activeNoteId.value = id
+  syncFooterTimeForActiveNote()
 }
 
 const renameNote = (id: string, newTitle: string): void => {
@@ -636,6 +657,7 @@ const migrateToStoragePath = async (nextPath: string): Promise<void> => {
     notes.value = savedNotes.length > 0 ? [savedNotes[0]] : []
     activeNoteId.value = savedNotes[0]?.id || ''
     if (notes.value.length === 0) addNote()
+    else syncFooterTimeForActiveNote()
     historyRef.value?.refresh?.()
     searchRef.value?.refresh?.()
   } catch (e) {
@@ -669,6 +691,7 @@ const refreshNotesAfterMigration = async (): Promise<void> => {
   notes.value = savedNotes.length > 0 ? [savedNotes[0]] : []
   activeNoteId.value = savedNotes[0]?.id || ''
   if (notes.value.length === 0) addNote()
+  else syncFooterTimeForActiveNote()
   historyRef.value?.refresh?.()
   searchRef.value?.refresh?.()
 }
@@ -791,14 +814,18 @@ const toggleLanguage = async (): Promise<void> => {
 
 const activeNote = computed(() => notes.value.find((n) => n.id === activeNoteId.value))
 
-const countWords = (content: string): number => {
-  const plainText = content
+const getPlainTextForStats = (content: string): string => {
+  return content
     .replace(/<[^>]*>/g, ' ')
     .replace(/&nbsp;/gi, ' ')
     .replace(/&[a-z\d#]+;/gi, ' ')
     .replace(/[`*_~>#\[\]()!|-]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
+}
+
+const countWords = (content: string): number => {
+  const plainText = getPlainTextForStats(content)
 
   if (!plainText) return 0
 
@@ -808,8 +835,16 @@ const countWords = (content: string): number => {
   return cjkMatches.length + latinMatches.length
 }
 
+const countChars = (content: string): number => {
+  const plainText = getPlainTextForStats(content)
+  if (!plainText) return 0
+  return Array.from(plainText.replace(/\s/g, '')).length
+}
+
 const activeWordCount = computed(() => countWords(activeNote.value?.content || ''))
 const selectedWordCount = computed(() => countWords(selectedText.value))
+const activeCharCount = computed(() => countChars(activeNote.value?.content || ''))
+const selectedCharCount = computed(() => countChars(selectedText.value))
 
 // 同步主题类到 html 元素，使 Teleport 到 body 的元素也能继承主题变量
 watch(theme, (newTheme) => {
@@ -928,6 +963,8 @@ watch(theme, (newTheme) => {
           :last-saved-time="lastSavedTime"
           :selected-word-count="selectedWordCount"
           :word-count="activeWordCount"
+          :selected-char-count="selectedCharCount"
+          :char-count="activeCharCount"
           :t="t"
         />
       </template>

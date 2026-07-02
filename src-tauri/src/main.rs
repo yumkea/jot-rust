@@ -18,6 +18,9 @@ use tauri_plugin_global_shortcut::{
     Builder as GlobalShortcutBuilder, GlobalShortcut, ShortcutState,
 };
 
+const DEFAULT_WINDOW_WIDTH: f64 = 502.0;
+const DEFAULT_WINDOW_HEIGHT: f64 = 350.0;
+
 #[cfg(windows)]
 use windows::Win32::{
     Foundation::RECT,
@@ -50,24 +53,18 @@ pub struct AppState {
 
 impl AppState {
     pub fn new(app_handle: &tauri::AppHandle) -> Self {
-        let legacy_data_dir = app_handle
+        let fallback_data_dir = app_handle
             .path()
             .app_data_dir()
             .expect("Failed to get app data dir");
         let app_dir = std::env::current_exe()
             .ok()
             .and_then(|path| path.parent().map(Path::to_path_buf))
-            .unwrap_or_else(|| legacy_data_dir.clone());
+            .unwrap_or(fallback_data_dir);
         let config_dir = app_dir.join(".config");
         std::fs::create_dir_all(&config_dir).expect("Failed to create config directory");
 
-        let legacy_db_path = legacy_data_dir.join("jot.db");
         let db_path = config_dir.join("jot.db");
-        if !db_path.exists() && legacy_db_path.exists() {
-            if let Err(error) = std::fs::copy(&legacy_db_path, &db_path) {
-                eprintln!("Failed to copy legacy database: {error}");
-            }
-        }
 
         let default_notes_dir = config_dir.join("notes");
         let conn = Connection::open(&db_path).expect("Failed to create database");
@@ -95,11 +92,9 @@ impl AppState {
         let notes_dir = resolve_notes_dir(&conn, &default_notes_dir)
             .expect("Failed to resolve notes directory");
         std::fs::create_dir_all(&notes_dir).expect("Failed to create notes directory");
-        migrate_sqlite_notes_to_files(&conn, &notes_dir)
+        migrate_sqlite_notes_to_files(&conn, &notes_dir, Some(&config_dir.join("sqlite-migrated")))
             .expect("Failed to migrate notes to markdown files");
-        merge_existing_markdown_notes(&notes_dir, &config_dir, &legacy_data_dir)
-            .expect("Failed to merge existing markdown notes");
-        ensure_markdown_notes_have_frontmatter(&notes_dir)
+        ensure_markdown_notes_have_frontmatter(&notes_dir, &config_dir.join("metadata-prepared"))
             .expect("Failed to prepare markdown metadata");
 
         AppState {
@@ -318,7 +313,14 @@ fn filename_parts(path: &Path) -> Result<(String, String), String> {
         .unwrap_or_else(|| (stem.to_string(), stem.to_string())))
 }
 
-fn ensure_markdown_notes_have_frontmatter(notes_dir: &Path) -> Result<(), String> {
+fn ensure_markdown_notes_have_frontmatter(
+    notes_dir: &Path,
+    marker_path: &Path,
+) -> Result<(), String> {
+    if marker_path.exists() {
+        return Ok(());
+    }
+
     for entry in fs::read_dir(notes_dir).map_err(|e| e.to_string())? {
         let path = entry.map_err(|e| e.to_string())?.path();
         if !path.is_file() || path.extension().and_then(|ext| ext.to_str()) != Some("md") {
@@ -334,6 +336,7 @@ fn ensure_markdown_notes_have_frontmatter(notes_dir: &Path) -> Result<(), String
         }
     }
 
+    fs::write(marker_path, now_string()).map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -371,71 +374,15 @@ fn note_from_path(path: &Path) -> Result<Note, String> {
     })
 }
 
-fn merge_existing_markdown_notes(
+fn migrate_sqlite_notes_to_files(
+    conn: &Connection,
     notes_dir: &Path,
-    config_dir: &Path,
-    legacy_data_dir: &Path,
-) -> Result<(), String> {
-    let mut candidates = vec![legacy_data_dir.join("notes")];
-
-    if let Some(exe_dir) = config_dir.parent() {
-        candidates.push(exe_dir.join(".config").join("notes"));
-        if let Some(target_dir) = exe_dir.parent() {
-            candidates.push(target_dir.join("debug").join(".config").join("notes"));
-            candidates.push(target_dir.join("release").join(".config").join("notes"));
-        }
+    marker_path: Option<&Path>,
+) -> Result<usize, String> {
+    if marker_path.is_some_and(Path::exists) {
+        return Ok(0);
     }
 
-    for source_dir in candidates {
-        if !source_dir.is_dir() || source_dir == notes_dir {
-            continue;
-        }
-
-        for entry in fs::read_dir(&source_dir).map_err(|e| e.to_string())? {
-            let source_path = entry.map_err(|e| e.to_string())?.path();
-            if !source_path.is_file()
-                || source_path.extension().and_then(|ext| ext.to_str()) != Some("md")
-            {
-                continue;
-            }
-
-            let note = note_from_path(&source_path)?;
-            if let Some(existing_path) = note_path_for_id(notes_dir, &note.id)? {
-                let existing_note = note_from_path(&existing_path)?;
-                if existing_note.content == note.content
-                    && (existing_note.created_at != note.created_at
-                        || existing_note.updated_at != note.updated_at)
-                {
-                    let metadata = NoteMetadata {
-                        id: existing_note.id,
-                        title: existing_note.title,
-                        created_at: note.created_at,
-                        updated_at: note.updated_at,
-                    };
-                    fs::write(
-                        existing_path,
-                        format_markdown_note(&metadata, &existing_note.content),
-                    )
-                    .map_err(|e| e.to_string())?;
-                }
-                continue;
-            }
-
-            let Some(file_name) = source_path.file_name() else {
-                continue;
-            };
-            let mut target_path = notes_dir.join(file_name);
-            if target_path.exists() {
-                target_path = notes_dir.join(note_filename(&note.id, &note.title));
-            }
-            fs::copy(&source_path, target_path).map_err(|e| e.to_string())?;
-        }
-    }
-
-    Ok(())
-}
-
-fn migrate_sqlite_notes_to_files(conn: &Connection, notes_dir: &Path) -> Result<usize, String> {
     let has_created_at = table_has_column(conn, "notes", "created_at")?;
     let has_updated_at = table_has_column(conn, "notes", "updated_at")?;
     let created_expr = if has_created_at { "created_at" } else { "NULL" };
@@ -481,6 +428,9 @@ fn migrate_sqlite_notes_to_files(conn: &Connection, notes_dir: &Path) -> Result<
         }
     }
 
+    if let Some(marker_path) = marker_path {
+        fs::write(marker_path, now_string()).map_err(|e| e.to_string())?;
+    }
     Ok(migrated_count)
 }
 
@@ -679,7 +629,7 @@ fn migrate_legacy_database(
     let conn =
         Connection::open_with_flags(&legacy_db_path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
             .map_err(|e| e.to_string())?;
-    let migrated_count = migrate_sqlite_notes_to_files(&conn, &notes_dir)?;
+    let migrated_count = migrate_sqlite_notes_to_files(&conn, &notes_dir, None)?;
 
     Ok(serde_json::json!({
         "success": true,
@@ -720,13 +670,18 @@ fn cursor_aligned_window_position(
 
 fn show_main_window(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
-        if let Ok(size) = window.outer_size() {
-            if let Some((x, y)) =
-                cursor_aligned_window_position(app, size.width as i32, size.height as i32)
-            {
-                let _ = window
-                    .set_position(tauri::Position::Physical(tauri::PhysicalPosition { x, y }));
-            }
+        let _ = window.set_size(tauri::Size::Logical(tauri::LogicalSize {
+            width: DEFAULT_WINDOW_WIDTH,
+            height: DEFAULT_WINDOW_HEIGHT,
+        }));
+
+        if let Some((x, y)) = cursor_aligned_window_position(
+            app,
+            DEFAULT_WINDOW_WIDTH as i32,
+            DEFAULT_WINDOW_HEIGHT as i32,
+        ) {
+            let _ =
+                window.set_position(tauri::Position::Physical(tauri::PhysicalPosition { x, y }));
         }
         let _ = window.unminimize();
         let _ = window.show();
@@ -887,10 +842,10 @@ fn resize_window(
                 GetClientRect(hwnd, &mut client_rect).map_err(|e| e.to_string())?;
             }
 
-            let frame_width = (window_rect.right - window_rect.left)
-                - (client_rect.right - client_rect.left);
-            let frame_height = (window_rect.bottom - window_rect.top)
-                - (client_rect.bottom - client_rect.top);
+            let frame_width =
+                (window_rect.right - window_rect.left) - (client_rect.right - client_rect.left);
+            let frame_height =
+                (window_rect.bottom - window_rect.top) - (client_rect.bottom - client_rect.top);
             let outer_width = size.width + frame_width.max(0);
             let outer_height = size.height + frame_height.max(0);
 
@@ -1033,6 +988,12 @@ fn main() {
         .plugin(global_shortcut_plugin)
         .setup(|app| {
             app.manage(AppState::new(&app.handle()));
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.set_size(tauri::Size::Logical(tauri::LogicalSize {
+                    width: DEFAULT_WINDOW_WIDTH,
+                    height: DEFAULT_WINDOW_HEIGHT,
+                }));
+            }
 
             // 从数据库读取 show_window 快捷键并注册
             let state = app.state::<AppState>();
