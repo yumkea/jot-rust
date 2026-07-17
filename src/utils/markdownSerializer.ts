@@ -134,3 +134,9 @@ export const editorJsonToMarkdown = (json: JSONContent | null | undefined): stri
   const blocks = (json.content ?? []).map((node) => serializeBlock(node)).filter(Boolean)
   return blocks.join('\n\n').trimEnd()
 }
+
+export const editorJsonToClipboardText = (json: JSONContent | null | undefined): string => {
+  if (!json || json.type !== 'doc') return ''
+  const blocks = (json.content ?? []).map((node) => serializeBlock(node)).filter(Boolean)
+  return blocks.join('\n').trimEnd()
+}

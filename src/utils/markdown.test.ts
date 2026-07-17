@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { editorJsonToMarkdown, normalizeContentForEditor } from './markdown'
+import { editorJsonToClipboardText, editorJsonToMarkdown, normalizeContentForEditor } from './markdown'
 
 describe('markdown pipeline', () => {
   it('serializes editor json through the extracted serializer', () => {
@@ -87,6 +87,20 @@ describe('markdown pipeline', () => {
     expect(html).toContain('data-type="taskList"')
     expect(html).toContain('data-checked="true"')
     expect(html).toContain('__aaa___')
+  })
+
+  it('serializes clipboard text without inserting blank lines between soft editor lines', () => {
+    const json = {
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'line one' }] },
+        { type: 'paragraph', content: [{ type: 'text', text: 'line two' }] },
+        { type: 'paragraph', content: [{ type: 'text', text: 'line three' }] }
+      ]
+    }
+
+    expect(editorJsonToMarkdown(json)).toBe('line one\n\nline two\n\nline three')
+    expect(editorJsonToClipboardText(json)).toBe('line one\nline two\nline three')
   })
 
   it('keeps bare urls and file-like names as plain text', () => {

@@ -10,7 +10,7 @@ import { TableKit } from '@tiptap/extension-table'
 import 'katex/dist/katex.min.css'
 import { Node as ProsemirrorNode } from 'prosemirror-model'
 import { NoLinkInsideCode, StrictCode, TyporaBlockMath, TyporaBold, TyporaInlineMath, TyporaItalic, TyporaTaskList } from '../utils/editorRendering'
-import { editorJsonToMarkdown, normalizeContentForEditor } from '../utils/markdown'
+import { editorJsonToClipboardText, editorJsonToMarkdown, normalizeContentForEditor } from '../utils/markdown'
 import * as api from '../api'
 
 // --- 接口定义 ---
@@ -196,6 +196,11 @@ const getCurrentMarkdown = (): string => {
   return editorJsonToMarkdown(editor.value.getJSON())
 }
 
+const getCurrentClipboardText = (): string => {
+  if (!editor.value) return ''
+  return editorJsonToClipboardText(editor.value.getJSON())
+}
+
 // --- 编辑器初始化 ---
 const editor = useEditor({
   content: normalizeContentForEditor(props.initialContent),
@@ -272,7 +277,8 @@ const editor = useEditor({
         const isAllSelected = from <= 1 && to >= view.state.doc.content.size
         if (!forceMarkdownCopy && !isAllSelected) return false
         event.preventDefault()
-        clipboard.setData('text/plain', getCurrentMarkdown())
+        clipboard.setData('text/plain', getCurrentClipboardText())
+        clipboard.setData('text/markdown', getCurrentMarkdown())
         forceMarkdownCopy = false
         return true
       }

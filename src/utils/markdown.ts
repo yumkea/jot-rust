@@ -1,6 +1,6 @@
 ﻿import MarkdownIt from 'markdown-it'
 import { installMarkdownEmphasisRules } from './markdownEmphasis'
-export { editorJsonToMarkdown } from './markdownSerializer'
+export { editorJsonToClipboardText, editorJsonToMarkdown } from './markdownSerializer'
 
 const md = new MarkdownIt({
   html: false,
