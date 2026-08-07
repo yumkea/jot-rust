@@ -1652,84 +1652,84 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 
 :root.theme-comic,
 .theme-comic {
-  --comic-ink: #070b12;
-  --comic-paper: #101318;
-  --comic-panel: #181d24;
-  --comic-panel-raised: #222936;
-  --comic-yellow: #63e6ff;
-  --comic-orange: #ff6b8a;
-  --comic-cyan: #8b5cf6;
-  --comic-mint: #4ade80;
-  --comic-pink: #ff4d8d;
-  --comic-shadow: rgba(0, 0, 0, 0.72);
+  --comic-ink: #0b1118;
+  --comic-paper: #11161d;
+  --comic-panel: #171d25;
+  --comic-panel-raised: #202733;
+  --comic-yellow: #9ad8e6;
+  --comic-orange: #d9827c;
+  --comic-cyan: #8f88d8;
+  --comic-mint: #8fc7a5;
+  --comic-pink: #cf7fa4;
+  --comic-shadow: rgba(0, 0, 0, 0.42);
   --bg-main: var(--comic-paper);
-  --text-main: #eaf6ff;
-  --text-secondary: rgba(234, 246, 255, 0.86);
-  --text-low: rgba(234, 246, 255, 0.5);
-  --text-quote: rgba(99, 230, 255, 0.42);
-  --border-color: rgba(99, 230, 255, 0.18);
-  --border-active: #63e6ff;
-  --hover-bg: rgba(99, 230, 255, 0.12);
-  --recording-bg: rgba(255, 107, 138, 0.16);
-  --overlay-bg: rgba(16, 19, 24, 0.94);
-  --kbd-bg: rgba(234, 246, 255, 0.09);
-  --glass-bg: rgba(16, 19, 24, 0.9);
-  --glass-border: #63e6ff;
-  --tab-active-bg: rgba(99, 230, 255, 0.16);
-  --divider-color: rgba(99, 230, 255, 0.34);
+  --text-main: #edf3f7;
+  --text-secondary: rgba(237, 243, 247, 0.82);
+  --text-low: rgba(237, 243, 247, 0.46);
+  --text-quote: rgba(154, 216, 230, 0.32);
+  --border-color: rgba(154, 216, 230, 0.12);
+  --border-active: rgba(154, 216, 230, 0.38);
+  --hover-bg: rgba(154, 216, 230, 0.09);
+  --recording-bg: rgba(207, 127, 164, 0.14);
+  --overlay-bg: rgba(17, 22, 29, 0.94);
+  --kbd-bg: rgba(237, 243, 247, 0.08);
+  --glass-bg: rgba(17, 22, 29, 0.9);
+  --glass-border: rgba(154, 216, 230, 0.34);
+  --tab-active-bg: rgba(154, 216, 230, 0.12);
+  --divider-color: rgba(154, 216, 230, 0.2);
 }
 
 :root.theme-light.theme-comic,
 .theme-light.theme-comic {
-  --comic-ink: #13151a;
-  --comic-paper: #f4efe7;
-  --comic-panel: #ebe4dc;
-  --comic-panel-raised: #fffaf2;
-  --comic-yellow: #00bcd4;
-  --comic-orange: #f06449;
-  --comic-cyan: #6d5dfc;
-  --comic-mint: #1ea672;
-  --comic-pink: #d92f72;
-  --comic-shadow: rgba(19, 21, 26, 0.28);
+  --comic-ink: #1c2229;
+  --comic-paper: #f2eee8;
+  --comic-panel: #e8e2da;
+  --comic-panel-raised: #fbf8f2;
+  --comic-yellow: #4c9aaa;
+  --comic-orange: #b96f68;
+  --comic-cyan: #716bb0;
+  --comic-mint: #629f7a;
+  --comic-pink: #ac6686;
+  --comic-shadow: rgba(28, 34, 41, 0.18);
   --bg-main: var(--comic-paper);
   --text-main: #13151a;
   --text-secondary: rgba(19, 21, 26, 0.84);
   --text-low: rgba(19, 21, 26, 0.52);
   --text-quote: rgba(19, 21, 26, 0.36);
-  --border-color: rgba(19, 21, 26, 0.16);
-  --border-active: #13151a;
-  --hover-bg: rgba(0, 188, 212, 0.16);
-  --recording-bg: rgba(240, 100, 73, 0.16);
+  --border-color: rgba(28, 34, 41, 0.12);
+  --border-active: rgba(28, 34, 41, 0.34);
+  --hover-bg: rgba(76, 154, 170, 0.12);
+  --recording-bg: rgba(185, 111, 104, 0.13);
   --overlay-bg: rgba(255, 250, 242, 0.96);
   --kbd-bg: rgba(19, 21, 26, 0.08);
   --glass-bg: rgba(244, 239, 231, 0.9);
-  --glass-border: #13151a;
-  --tab-active-bg: rgba(0, 188, 212, 0.18);
-  --divider-color: rgba(19, 21, 26, 0.26);
+  --glass-border: rgba(28, 34, 41, 0.32);
+  --tab-active-bg: rgba(76, 154, 170, 0.12);
+  --divider-color: rgba(28, 34, 41, 0.18);
 }
 
 .wrapper.theme-comic {
   color: var(--text-main);
-  border: 3px solid var(--glass-border) !important;
+  border: 1px solid var(--glass-border) !important;
   border-radius: 8px;
   background:
-    radial-gradient(circle at 1px 1px, rgba(99, 230, 255, 0.16) 1px, transparent 0) 0 0 / 10px 10px,
-    linear-gradient(135deg, rgba(255, 107, 138, 0.14), transparent 38%),
+    radial-gradient(circle at 1px 1px, rgba(154, 216, 230, 0.08) 1px, transparent 0) 0 0 / 12px 12px,
+    linear-gradient(135deg, rgba(143, 136, 216, 0.08), transparent 42%),
     var(--glass-bg) !important;
   box-shadow:
-    6px 6px 0 var(--comic-shadow),
+    0 16px 42px rgba(0, 0, 0, 0.32),
     inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-  font-family: Inter, "Arial Black", "Segoe UI", system-ui, sans-serif;
+  font-family: Inter, "Segoe UI", system-ui, sans-serif;
 }
 
 .theme-comic .main-container,
 .theme-comic .sidebar-wrapper {
   background:
-    linear-gradient(180deg, rgba(99, 230, 255, 0.04), transparent 28%),
+    linear-gradient(180deg, rgba(154, 216, 230, 0.025), transparent 28%),
     var(--bg-main);
-  border: 3px solid var(--border-active);
+  border: 1px solid var(--border-active);
   border-radius: 8px;
-  box-shadow: 4px 4px 0 var(--comic-shadow);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
 }
 
 .theme-comic .shortcut-item,
@@ -1737,11 +1737,11 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 .theme-comic .context-menu,
 .theme-comic .slash-menu {
   background:
-    linear-gradient(135deg, rgba(99, 230, 255, 0.08), transparent 44%),
+    linear-gradient(135deg, rgba(154, 216, 230, 0.045), transparent 46%),
     var(--comic-panel);
-  border: 2px solid var(--border-active);
+  border: 1px solid var(--border-active);
   border-radius: 6px;
-  box-shadow: 3px 3px 0 var(--comic-shadow);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.26);
 }
 
 .theme-light.theme-comic .shortcut-item,
@@ -1754,7 +1754,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 }
 
 .theme-comic .shortcut-item {
-  border-bottom: 2px solid var(--border-active);
+  border-bottom: 1px solid var(--border-active);
   min-height: 44px;
 }
 
@@ -1765,7 +1765,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   color: var(--text-main);
   padding-left: 18px;
   transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0 var(--comic-shadow);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.22);
 }
 
 .theme-comic .shortcut-label,
@@ -1779,12 +1779,12 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 .theme-comic .settings-header {
   height: 38px;
   margin-bottom: 14px;
-  border-bottom: 3px solid var(--border-active);
+  border-bottom: 1px solid var(--border-active);
   background:
-    linear-gradient(90deg, rgba(99, 230, 255, 0.14), transparent 64%),
+    linear-gradient(90deg, rgba(154, 216, 230, 0.08), transparent 64%),
     var(--comic-panel);
   border-radius: 6px;
-  box-shadow: 3px 3px 0 var(--comic-shadow);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
 }
 
 .theme-comic .settings-title {
@@ -1795,23 +1795,23 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   padding: 2px 10px;
   color: var(--comic-ink);
   background: var(--comic-yellow);
-  border: 2px solid var(--comic-ink);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 4px;
-  box-shadow: 2px 2px 0 var(--comic-shadow);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
   text-transform: uppercase;
 }
 
 .theme-comic .storage-card {
   background:
-    radial-gradient(circle at 2px 2px, rgba(99, 230, 255, 0.14) 1px, transparent 0) 0 0 / 8px 8px,
+    radial-gradient(circle at 2px 2px, rgba(154, 216, 230, 0.08) 1px, transparent 0) 0 0 / 10px 10px,
     var(--comic-panel);
 }
 
 .theme-comic .storage-path-button,
 .theme-comic .storage-path-display {
-  border: 2px solid var(--border-active);
+  border: 1px solid var(--border-active);
   border-radius: 6px;
-  box-shadow: 2px 2px 0 var(--comic-shadow);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
 }
 
 .theme-comic .storage-path-button {
@@ -1823,9 +1823,9 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 .theme-comic .tab-item.active,
 .theme-comic .global-badge,
 .theme-comic .shortcut-keys kbd {
-  border: 2px solid var(--comic-ink);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 4px;
-  box-shadow: 2px 2px 0 var(--comic-shadow);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.16);
 }
 
 .theme-comic .global-badge,
@@ -1843,16 +1843,16 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 
 .theme-comic .tab-item:hover,
 .theme-comic .tab-item.active {
-  color: var(--comic-ink);
+  color: #f4fbff;
   background: var(--comic-cyan);
-  border-color: var(--comic-ink);
+  border-color: rgba(255, 255, 255, 0.18);
   padding-left: 10px;
 }
 
 .theme-comic .title-bar {
-  border-bottom: 2px solid var(--divider-color);
+  border-bottom: 1px solid var(--divider-color);
   background:
-    linear-gradient(90deg, rgba(99, 230, 255, 0.1), transparent 58%),
+    linear-gradient(90deg, rgba(154, 216, 230, 0.055), transparent 58%),
     var(--bg-main);
 }
 
@@ -1868,25 +1868,25 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 .theme-comic .top-icons button.active,
 .theme-comic .resize-handle:hover {
   background: var(--comic-yellow);
-  border-color: var(--comic-ink);
-  box-shadow: 2px 2px 0 var(--comic-shadow);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
 }
 
 .theme-comic .active-indicator {
   left: -10px;
-  width: 8px;
+  width: 5px;
   background: var(--comic-pink);
-  border: 2px solid var(--comic-ink);
-  box-shadow: 2px 2px 0 var(--comic-shadow);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 0 12px rgba(207, 127, 164, 0.22);
 }
 
 .theme-comic .tooltip,
 .theme-comic .add-tooltip {
   color: var(--comic-ink);
   background: var(--comic-yellow);
-  border: 2px solid var(--comic-ink);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 4px;
-  box-shadow: 3px 3px 0 var(--comic-shadow);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.22);
   font-weight: 900;
 }
 
@@ -1896,8 +1896,8 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   font-weight: 650;
   letter-spacing: 0;
   background:
-    linear-gradient(rgba(99, 230, 255, 0.045) 1px, transparent 1px) 0 0 / 100% 28px,
-    radial-gradient(circle at 1px 1px, rgba(99, 230, 255, 0.12) 1px, transparent 0) 0 0 / 12px 12px;
+    linear-gradient(rgba(154, 216, 230, 0.025) 1px, transparent 1px) 0 0 / 100% 28px,
+    radial-gradient(circle at 1px 1px, rgba(154, 216, 230, 0.06) 1px, transparent 0) 0 0 / 14px 14px;
 }
 
 .theme-comic .prose-mirror-editor h1,
@@ -1905,10 +1905,10 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   display: table;
   color: var(--comic-ink);
   background: var(--comic-yellow);
-  border: 3px solid var(--comic-ink);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 4px;
   padding: 2px 10px;
-  box-shadow: 3px 3px 0 var(--comic-shadow);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.2);
   font-weight: 900;
 }
 
@@ -1920,14 +1920,14 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 .theme-comic .prose-mirror-editor div.tiptap-mathematics-render {
   color: var(--comic-ink);
   background: var(--comic-mint);
-  border: 2px solid var(--comic-ink);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 4px;
-  box-shadow: 2px 2px 0 var(--comic-shadow);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.18);
 }
 
 .theme-comic .prose-mirror-editor th,
 .theme-comic .prose-mirror-editor td {
-  border: 2px solid var(--border-active);
+  border: 1px solid var(--border-active);
 }
 
 .theme-comic .prose-mirror-editor th {
@@ -1944,7 +1944,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 }
 
 .theme-comic .footer-bar {
-  border-top: 2px solid var(--divider-color);
+  border-top: 1px solid var(--divider-color);
   background: rgba(0, 0, 0, 0.12);
 }
 
