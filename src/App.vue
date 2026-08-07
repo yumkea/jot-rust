@@ -1928,6 +1928,28 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   font-weight: 650;
   letter-spacing: 0;
   background: var(--comic-panel);
+  caret-color: var(--comic-pink);
+}
+
+.theme-comic .prose-mirror-editor:focus {
+  outline: 0;
+}
+
+.theme-comic .prose-mirror-editor::selection,
+.theme-comic .prose-mirror-editor *::selection {
+  color: var(--comic-ink);
+  background: var(--comic-yellow);
+}
+
+.theme-dark.theme-comic .prose-mirror-editor::selection,
+.theme-dark.theme-comic .prose-mirror-editor *::selection {
+  color: var(--comic-ink);
+  background: var(--comic-cyan);
+}
+
+.theme-comic .prose-mirror-editor p.is-editor-empty:first-child::before {
+  color: var(--text-low);
+  font-weight: 800;
 }
 
 .theme-comic .prose-mirror-editor h1,
