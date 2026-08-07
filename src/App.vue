@@ -1661,20 +1661,23 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   --comic-cyan: #8f88d8;
   --comic-mint: #8fc7a5;
   --comic-pink: #cf7fa4;
+  --comic-border: #334653;
+  --comic-border-soft: #26333e;
+  --comic-sticker-border: #0b1118;
   --comic-shadow: rgba(0, 0, 0, 0.42);
   --bg-main: var(--comic-paper);
   --text-main: #edf3f7;
   --text-secondary: rgba(237, 243, 247, 0.82);
   --text-low: rgba(237, 243, 247, 0.46);
   --text-quote: rgba(154, 216, 230, 0.32);
-  --border-color: rgba(154, 216, 230, 0.12);
-  --border-active: rgba(154, 216, 230, 0.38);
+  --border-color: var(--comic-border-soft);
+  --border-active: var(--comic-border);
   --hover-bg: rgba(154, 216, 230, 0.09);
   --recording-bg: rgba(207, 127, 164, 0.14);
   --overlay-bg: rgba(17, 22, 29, 0.94);
   --kbd-bg: rgba(237, 243, 247, 0.08);
   --glass-bg: rgba(17, 22, 29, 0.9);
-  --glass-border: rgba(154, 216, 230, 0.34);
+  --glass-border: var(--comic-border);
   --tab-active-bg: rgba(154, 216, 230, 0.12);
   --divider-color: rgba(154, 216, 230, 0.2);
 }
@@ -1690,27 +1693,30 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   --comic-cyan: #716bb0;
   --comic-mint: #629f7a;
   --comic-pink: #ac6686;
+  --comic-border: #7d817d;
+  --comic-border-soft: #b8b1a8;
+  --comic-sticker-border: #1c2229;
   --comic-shadow: rgba(28, 34, 41, 0.18);
   --bg-main: var(--comic-paper);
   --text-main: #13151a;
   --text-secondary: rgba(19, 21, 26, 0.84);
   --text-low: rgba(19, 21, 26, 0.52);
   --text-quote: rgba(19, 21, 26, 0.36);
-  --border-color: rgba(28, 34, 41, 0.12);
-  --border-active: rgba(28, 34, 41, 0.34);
+  --border-color: var(--comic-border-soft);
+  --border-active: var(--comic-border);
   --hover-bg: rgba(76, 154, 170, 0.12);
   --recording-bg: rgba(185, 111, 104, 0.13);
   --overlay-bg: rgba(255, 250, 242, 0.96);
   --kbd-bg: rgba(19, 21, 26, 0.08);
   --glass-bg: rgba(244, 239, 231, 0.9);
-  --glass-border: rgba(28, 34, 41, 0.32);
+  --glass-border: var(--comic-border);
   --tab-active-bg: rgba(76, 154, 170, 0.12);
   --divider-color: rgba(28, 34, 41, 0.18);
 }
 
 .wrapper.theme-comic {
   color: var(--text-main);
-  border: 1px solid var(--glass-border) !important;
+  border: 2px solid var(--glass-border) !important;
   border-radius: 8px;
   background:
     radial-gradient(circle at 1px 1px, rgba(154, 216, 230, 0.08) 1px, transparent 0) 0 0 / 12px 12px,
@@ -1718,7 +1724,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
     var(--glass-bg) !important;
   box-shadow:
     0 16px 42px rgba(0, 0, 0, 0.32),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    inset 0 0 0 1px var(--comic-border-soft);
   font-family: Inter, "Segoe UI", system-ui, sans-serif;
 }
 
@@ -1727,7 +1733,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   background:
     linear-gradient(180deg, rgba(154, 216, 230, 0.025), transparent 28%),
     var(--bg-main);
-  border: 1px solid var(--border-active);
+  border: 2px solid var(--border-active);
   border-radius: 8px;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
 }
@@ -1739,7 +1745,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   background:
     linear-gradient(135deg, rgba(154, 216, 230, 0.045), transparent 46%),
     var(--comic-panel);
-  border: 1px solid var(--border-active);
+  border: 2px solid var(--border-active);
   border-radius: 6px;
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.26);
 }
@@ -1754,7 +1760,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 }
 
 .theme-comic .shortcut-item {
-  border-bottom: 1px solid var(--border-active);
+  border-bottom: 2px solid var(--border-active);
   min-height: 44px;
 }
 
@@ -1779,7 +1785,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 .theme-comic .settings-header {
   height: 38px;
   margin-bottom: 14px;
-  border-bottom: 1px solid var(--border-active);
+  border: 2px solid var(--border-active);
   background:
     linear-gradient(90deg, rgba(154, 216, 230, 0.08), transparent 64%),
     var(--comic-panel);
@@ -1795,7 +1801,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   padding: 2px 10px;
   color: var(--comic-ink);
   background: var(--comic-yellow);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid var(--comic-sticker-border);
   border-radius: 4px;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
   text-transform: uppercase;
@@ -1809,7 +1815,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 
 .theme-comic .storage-path-button,
 .theme-comic .storage-path-display {
-  border: 1px solid var(--border-active);
+  border: 2px solid var(--border-active);
   border-radius: 6px;
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
 }
@@ -1823,7 +1829,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 .theme-comic .tab-item.active,
 .theme-comic .global-badge,
 .theme-comic .shortcut-keys kbd {
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 2px solid var(--comic-sticker-border);
   border-radius: 4px;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.16);
 }
@@ -1836,7 +1842,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 }
 
 .theme-comic .tab-item {
-  border: 2px solid transparent;
+  border: 2px solid var(--comic-border-soft);
   border-radius: 6px;
   text-transform: uppercase;
 }
@@ -1845,12 +1851,12 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 .theme-comic .tab-item.active {
   color: #f4fbff;
   background: var(--comic-cyan);
-  border-color: rgba(255, 255, 255, 0.18);
+  border-color: var(--comic-sticker-border);
   padding-left: 10px;
 }
 
 .theme-comic .title-bar {
-  border-bottom: 1px solid var(--divider-color);
+  border-bottom: 2px solid var(--divider-color);
   background:
     linear-gradient(90deg, rgba(154, 216, 230, 0.055), transparent 58%),
     var(--bg-main);
@@ -1859,7 +1865,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 .theme-comic .tab-add,
 .theme-comic .top-icons button,
 .theme-comic .resize-handle {
-  border: 2px solid transparent;
+  border: 2px solid var(--comic-border-soft);
   border-radius: 6px;
 }
 
@@ -1868,7 +1874,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 .theme-comic .top-icons button.active,
 .theme-comic .resize-handle:hover {
   background: var(--comic-yellow);
-  border-color: rgba(255, 255, 255, 0.18);
+  border-color: var(--comic-sticker-border);
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
 }
 
@@ -1876,7 +1882,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   left: -10px;
   width: 5px;
   background: var(--comic-pink);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 2px solid var(--comic-sticker-border);
   box-shadow: 0 0 12px rgba(207, 127, 164, 0.22);
 }
 
@@ -1884,7 +1890,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 .theme-comic .add-tooltip {
   color: var(--comic-ink);
   background: var(--comic-yellow);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 2px solid var(--comic-sticker-border);
   border-radius: 4px;
   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.22);
   font-weight: 900;
@@ -1905,7 +1911,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   display: table;
   color: var(--comic-ink);
   background: var(--comic-yellow);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid var(--comic-sticker-border);
   border-radius: 4px;
   padding: 2px 10px;
   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.2);
@@ -1920,14 +1926,14 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 .theme-comic .prose-mirror-editor div.tiptap-mathematics-render {
   color: var(--comic-ink);
   background: var(--comic-mint);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 2px solid var(--comic-sticker-border);
   border-radius: 4px;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.18);
 }
 
 .theme-comic .prose-mirror-editor th,
 .theme-comic .prose-mirror-editor td {
-  border: 1px solid var(--border-active);
+  border: 2px solid var(--border-active);
 }
 
 .theme-comic .prose-mirror-editor th {
@@ -1944,7 +1950,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 }
 
 .theme-comic .footer-bar {
-  border-top: 1px solid var(--divider-color);
+  border-top: 2px solid var(--divider-color);
   background: rgba(0, 0, 0, 0.12);
 }
 
