@@ -1652,16 +1652,16 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 
 :root.theme-comic,
 .theme-comic {
-  --comic-ink: #171717;
-  --comic-paper: #fff7e8;
-  --comic-panel: #fffdf7;
-  --comic-panel-raised: #f9e6ff;
-  --comic-yellow: #ffe66d;
-  --comic-orange: #ffb085;
-  --comic-cyan: #9ee8ff;
-  --comic-mint: #b9f6ca;
-  --comic-pink: #ff9fce;
-  --comic-lavender: #c8b6ff;
+  --comic-ink: #181614;
+  --comic-paper: #fff4df;
+  --comic-panel: #fffefa;
+  --comic-panel-raised: #fff0b8;
+  --comic-yellow: #ffe16a;
+  --comic-orange: #ffb38a;
+  --comic-cyan: #8fe7ff;
+  --comic-mint: #baf5cf;
+  --comic-pink: #ffafd2;
+  --comic-lavender: #d9c7ff;
   --comic-border: var(--comic-ink);
   --comic-border-soft: var(--comic-ink);
   --comic-sticker-border: var(--comic-ink);
@@ -1685,34 +1685,53 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   --icon-active-filter: brightness(0);
 }
 
+:root.theme-dark.theme-comic,
+.theme-dark.theme-comic {
+  --comic-paper: #24201f;
+  --comic-panel: #fff8e8;
+  --comic-panel-raised: #ffe16a;
+  --comic-yellow: #ffe16a;
+  --comic-orange: #ffb38a;
+  --comic-cyan: #8fe7ff;
+  --comic-mint: #baf5cf;
+  --comic-pink: #ffafd2;
+  --comic-lavender: #d9c7ff;
+  --comic-shadow: #070707;
+  --bg-main: var(--comic-paper);
+  --text-secondary: #342f2b;
+  --text-low: #695f55;
+  --text-quote: #756b61;
+  --glass-bg: var(--comic-paper);
+}
+
 :root.theme-light.theme-comic,
 .theme-light.theme-comic {
-  --comic-paper: #fffaf0;
+  --comic-paper: #fff7e8;
   --comic-panel: #ffffff;
-  --comic-panel-raised: #e9f8ff;
-  --comic-yellow: #ffe875;
-  --comic-orange: #ffc09a;
-  --comic-cyan: #aeeaff;
-  --comic-mint: #c6f7d4;
-  --comic-pink: #ffb3d9;
-  --comic-lavender: #d8c8ff;
+  --comic-panel-raised: #fff1bd;
+  --comic-yellow: #ffe36d;
+  --comic-orange: #ffbd94;
+  --comic-cyan: #a2ebff;
+  --comic-mint: #c7f7d7;
+  --comic-pink: #ffbad9;
+  --comic-lavender: #dfd0ff;
 }
 
 .wrapper.theme-comic {
   color: var(--text-main);
-  border: 4px solid var(--glass-border) !important;
-  border-radius: 22px;
+  border: 3px solid var(--glass-border) !important;
+  border-radius: 24px;
   background: var(--glass-bg) !important;
-  box-shadow: 8px 8px 0 var(--comic-shadow);
+  box-shadow: 6px 6px 0 var(--comic-shadow);
   font-family: Inter, "Arial Rounded MT Bold", "Segoe UI", system-ui, sans-serif;
 }
 
 .theme-comic .main-container,
 .theme-comic .sidebar-wrapper {
-  background: var(--bg-main);
-  border: 4px solid var(--border-active);
-  border-radius: 20px;
-  box-shadow: 5px 5px 0 var(--comic-shadow);
+  background: var(--comic-panel);
+  border: 3px solid var(--border-active);
+  border-radius: 22px;
+  box-shadow: 4px 4px 0 var(--comic-shadow);
 }
 
 .theme-comic .shortcut-item,
@@ -1720,9 +1739,9 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 .theme-comic .context-menu,
 .theme-comic .slash-menu {
   background: var(--comic-panel);
-  border: 4px solid var(--border-active);
+  border: 3px solid var(--border-active);
   border-radius: 18px;
-  box-shadow: 5px 5px 0 var(--comic-shadow);
+  box-shadow: 3px 3px 0 var(--comic-shadow);
 }
 
 .theme-light.theme-comic .shortcut-item,
@@ -1733,33 +1752,39 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 }
 
 .theme-comic .shortcut-item {
-  border-bottom: 4px solid var(--border-active);
+  border-bottom: 3px solid var(--border-active);
   min-height: 48px;
 }
 
 .theme-comic .shortcut-item:nth-child(5n + 1) {
-  background: var(--comic-cyan);
+  background: var(--comic-panel);
 }
 
 .theme-comic .shortcut-item:nth-child(5n + 2) {
-  background: var(--comic-pink);
+  background: var(--comic-panel);
 }
 
 .theme-comic .shortcut-item:nth-child(5n + 3) {
-  background: var(--comic-mint);
+  background: var(--comic-panel);
 }
 
 .theme-comic .shortcut-item:nth-child(5n + 4) {
-  background: var(--comic-lavender);
+  background: var(--comic-panel);
+}
+
+.theme-comic .shortcut-item.active {
+  background: var(--comic-yellow);
+  border-color: var(--comic-sticker-border);
+  box-shadow: 4px 4px 0 var(--comic-shadow);
 }
 
 .theme-comic .shortcut-item:hover {
-  background: var(--comic-yellow);
+  background: var(--comic-cyan);
   color: var(--text-main);
   padding-left: 16px;
   transform: rotate(-0.4deg) translate(-2px, -2px);
   border-color: var(--comic-sticker-border);
-  box-shadow: 8px 8px 0 var(--comic-shadow);
+  box-shadow: 5px 5px 0 var(--comic-shadow);
 }
 
 .theme-comic .shortcut-label,
@@ -1773,10 +1798,10 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 .theme-comic .settings-header {
   height: 44px;
   margin-bottom: 16px;
-  border: 4px solid var(--border-active);
-  background: var(--comic-orange);
-  border-radius: 18px;
-  box-shadow: 5px 5px 0 var(--comic-shadow);
+  border: 3px solid var(--border-active);
+  background: var(--comic-panel);
+  border-radius: 20px;
+  box-shadow: 4px 4px 0 var(--comic-shadow);
 }
 
 .theme-comic .settings-title {
@@ -1787,27 +1812,27 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   padding: 3px 12px;
   color: var(--comic-ink);
   background: var(--comic-yellow);
-  border: 4px solid var(--comic-sticker-border);
+  border: 3px solid var(--comic-sticker-border);
   border-radius: 14px;
-  box-shadow: 4px 4px 0 var(--comic-shadow);
+  box-shadow: 3px 3px 0 var(--comic-shadow);
   text-transform: uppercase;
   transform: rotate(-1deg);
 }
 
 .theme-comic .storage-card {
-  background: var(--comic-lavender);
+  background: var(--comic-mint);
 }
 
 .theme-comic .storage-path-button,
 .theme-comic .storage-path-display {
-  border: 4px solid var(--border-active);
+  border: 3px solid var(--border-active);
   border-radius: 16px;
-  box-shadow: 4px 4px 0 var(--comic-shadow);
+  box-shadow: 3px 3px 0 var(--comic-shadow);
 }
 
 .theme-comic .storage-path-button {
   color: var(--comic-ink);
-  background: var(--comic-mint);
+  background: var(--comic-cyan);
   font-weight: 900;
 }
 
@@ -1827,9 +1852,10 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 }
 
 .theme-comic .tab-item {
-  border: 4px solid var(--comic-border-soft);
+  border: 3px solid var(--comic-border-soft);
   border-radius: 16px;
   text-transform: uppercase;
+  background: var(--comic-panel);
 }
 
 .theme-comic .tab-item:hover,
@@ -1841,29 +1867,30 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 }
 
 .theme-comic .title-bar {
-  border-bottom: 4px solid var(--divider-color);
-  background: var(--comic-mint);
+  border-bottom: 3px solid var(--divider-color);
+  background: var(--comic-panel);
 }
 
 .theme-comic .tab-add,
 .theme-comic .top-icons button,
 .theme-comic .resize-handle {
-  border: 4px solid var(--comic-border-soft);
+  border: 3px solid var(--comic-border-soft);
   border-radius: 16px;
+  background: var(--comic-panel);
 }
 
 .theme-comic .tab-add:hover,
 .theme-comic .top-icons button:hover,
 .theme-comic .resize-handle:hover {
-  background: var(--comic-orange);
+  background: var(--comic-pink);
   border-color: var(--comic-border);
-  box-shadow: 4px 4px 0 var(--comic-shadow);
+  box-shadow: 3px 3px 0 var(--comic-shadow);
 }
 
 .theme-comic .top-icons button.active {
   background: var(--comic-yellow);
   border-color: var(--comic-sticker-border);
-  box-shadow: 5px 5px 0 var(--comic-shadow);
+  box-shadow: 4px 4px 0 var(--comic-shadow);
 }
 
 .theme-comic .active-indicator {
@@ -1879,9 +1906,9 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 .theme-comic .add-tooltip {
   color: var(--comic-ink);
   background: var(--comic-yellow);
-  border: 4px solid var(--comic-sticker-border);
+  border: 3px solid var(--comic-sticker-border);
   border-radius: 16px;
-  box-shadow: 5px 5px 0 var(--comic-shadow);
+  box-shadow: 4px 4px 0 var(--comic-shadow);
   font-weight: 900;
 }
 
@@ -1897,11 +1924,11 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 .theme-comic .prose-mirror-editor h2 {
   display: table;
   color: var(--comic-ink);
-  background: var(--comic-yellow);
-  border: 4px solid var(--comic-sticker-border);
+  background: var(--comic-lavender);
+  border: 3px solid var(--comic-sticker-border);
   border-radius: 18px;
   padding: 4px 14px;
-  box-shadow: 5px 5px 0 var(--comic-shadow);
+  box-shadow: 4px 4px 0 var(--comic-shadow);
   font-weight: 900;
   transform: rotate(-0.6deg);
 }
@@ -1914,14 +1941,14 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 .theme-comic .prose-mirror-editor div.tiptap-mathematics-render {
   color: var(--comic-ink);
   background: var(--comic-mint);
-  border: 4px solid var(--comic-sticker-border);
+  border: 3px solid var(--comic-sticker-border);
   border-radius: 16px;
-  box-shadow: 4px 4px 0 var(--comic-shadow);
+  box-shadow: 3px 3px 0 var(--comic-shadow);
 }
 
 .theme-comic .prose-mirror-editor th,
 .theme-comic .prose-mirror-editor td {
-  border: 4px solid var(--border-active);
+  border: 3px solid var(--border-active);
 }
 
 .theme-comic .prose-mirror-editor th {
@@ -1938,14 +1965,14 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 }
 
 .theme-comic .footer-bar {
-  border-top: 4px solid var(--divider-color);
-  background: var(--comic-orange);
+  border-top: 3px solid var(--divider-color);
+  background: var(--comic-panel);
 }
 
 .theme-comic .tab {
   height: 28px;
   background: var(--comic-panel);
-  border: 4px solid var(--comic-border);
+  border: 3px solid var(--comic-border);
   border-radius: 16px;
   box-shadow: 3px 3px 0 var(--comic-shadow);
   margin-bottom: 0;
@@ -1974,7 +2001,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   width: 30px;
   height: 28px;
   background: var(--comic-panel);
-  border: 4px solid var(--comic-border);
+  border: 3px solid var(--comic-border);
   border-radius: 16px;
   box-shadow: 3px 3px 0 var(--comic-shadow);
   margin-left: 4px;
@@ -1991,18 +2018,18 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 .theme-comic .ctrl-tooltip {
   color: var(--comic-ink);
   background: var(--comic-yellow);
-  border: 4px solid var(--comic-sticker-border);
+  border: 3px solid var(--comic-sticker-border);
   border-radius: 16px;
-  box-shadow: 5px 5px 0 var(--comic-shadow);
+  box-shadow: 4px 4px 0 var(--comic-shadow);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   font-weight: 900;
 }
 
 .theme-comic .color-swatch {
-  border: 4px solid var(--comic-sticker-border) !important;
+  border: 3px solid var(--comic-sticker-border) !important;
   border-radius: 16px;
-  box-shadow: 4px 4px 0 var(--comic-shadow);
+  box-shadow: 3px 3px 0 var(--comic-shadow);
 }
 
 .theme-comic .word-count,
