@@ -1687,21 +1687,26 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 
 :root.theme-dark.theme-comic,
 .theme-dark.theme-comic {
-  --comic-paper: #24201f;
-  --comic-panel: #fff8e8;
-  --comic-panel-raised: #ffe16a;
-  --comic-yellow: #ffe16a;
-  --comic-orange: #ffb38a;
-  --comic-cyan: #8fe7ff;
-  --comic-mint: #baf5cf;
-  --comic-pink: #ffafd2;
-  --comic-lavender: #d9c7ff;
+  --comic-paper: #201c1b;
+  --comic-panel: #302927;
+  --comic-panel-raised: #463a30;
+  --comic-yellow: #d8ba63;
+  --comic-orange: #d28b69;
+  --comic-cyan: #69aebf;
+  --comic-mint: #82bd91;
+  --comic-pink: #c87b9b;
+  --comic-lavender: #9b89ce;
   --comic-shadow: #070707;
   --bg-main: var(--comic-paper);
-  --text-secondary: #342f2b;
-  --text-low: #695f55;
-  --text-quote: #756b61;
+  --text-main: #f3ead9;
+  --text-secondary: #e0d2bd;
+  --text-low: #a99a86;
+  --text-quote: #b6a68f;
   --glass-bg: var(--comic-paper);
+  --overlay-bg: var(--comic-panel);
+  --kbd-bg: var(--comic-panel-raised);
+  --icon-filter: brightness(0) invert(0.92);
+  --icon-active-filter: brightness(0);
 }
 
 :root.theme-light.theme-comic,
@@ -1851,6 +1856,11 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   font-weight: 900;
 }
 
+.theme-dark.theme-comic .global-badge,
+.theme-dark.theme-comic .shortcut-keys kbd {
+  color: var(--text-main);
+}
+
 .theme-comic .tab-item {
   border: 3px solid var(--comic-border-soft);
   border-radius: 16px;
@@ -1995,6 +2005,14 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 .theme-comic .tab-input {
   color: var(--comic-ink);
   font-weight: 900;
+}
+
+.theme-dark.theme-comic .tab-input {
+  color: var(--text-main);
+}
+
+.theme-dark.theme-comic .tab.active .tab-input {
+  color: var(--comic-ink);
 }
 
 .theme-comic .control-icon {
