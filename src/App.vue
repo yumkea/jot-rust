@@ -1653,18 +1653,18 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 :root.theme-comic,
 .theme-comic {
   --comic-ink: #0b1118;
-  --comic-paper: #11161d;
-  --comic-panel: #171d25;
-  --comic-panel-raised: #202733;
-  --comic-yellow: #9ad8e6;
-  --comic-orange: #d9827c;
-  --comic-cyan: #8f88d8;
-  --comic-mint: #8fc7a5;
-  --comic-pink: #cf7fa4;
-  --comic-border: #334653;
-  --comic-border-soft: #26333e;
+  --comic-paper: #0f141b;
+  --comic-panel: #161c24;
+  --comic-panel-raised: #1f2731;
+  --comic-yellow: #86c7d3;
+  --comic-orange: #c97873;
+  --comic-cyan: #746fa8;
+  --comic-mint: #7fab92;
+  --comic-pink: #be7393;
+  --comic-border: #2b3743;
+  --comic-border-soft: #202933;
   --comic-sticker-border: #0b1118;
-  --comic-shadow: rgba(0, 0, 0, 0.42);
+  --comic-shadow: #070a0f;
   --bg-main: var(--comic-paper);
   --text-main: #edf3f7;
   --text-secondary: rgba(237, 243, 247, 0.82);
@@ -1679,22 +1679,22 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   --glass-bg: rgba(17, 22, 29, 0.9);
   --glass-border: var(--comic-border);
   --tab-active-bg: rgba(154, 216, 230, 0.12);
-  --divider-color: rgba(154, 216, 230, 0.2);
+  --divider-color: var(--comic-border-soft);
 }
 
 :root.theme-light.theme-comic,
 .theme-light.theme-comic {
   --comic-ink: #1c2229;
-  --comic-paper: #f2eee8;
-  --comic-panel: #e8e2da;
-  --comic-panel-raised: #fbf8f2;
-  --comic-yellow: #4c9aaa;
-  --comic-orange: #b96f68;
-  --comic-cyan: #716bb0;
-  --comic-mint: #629f7a;
-  --comic-pink: #ac6686;
-  --comic-border: #7d817d;
-  --comic-border-soft: #b8b1a8;
+  --comic-paper: #f1ece5;
+  --comic-panel: #e5ded5;
+  --comic-panel-raised: #faf7f0;
+  --comic-yellow: #438c9b;
+  --comic-orange: #a96560;
+  --comic-cyan: #68629f;
+  --comic-mint: #5d916f;
+  --comic-pink: #9a5f7a;
+  --comic-border: #747a78;
+  --comic-border-soft: #aca69e;
   --comic-sticker-border: #1c2229;
   --comic-shadow: rgba(28, 34, 41, 0.18);
   --bg-main: var(--comic-paper);
@@ -1711,7 +1711,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   --glass-bg: rgba(244, 239, 231, 0.9);
   --glass-border: var(--comic-border);
   --tab-active-bg: rgba(76, 154, 170, 0.12);
-  --divider-color: rgba(28, 34, 41, 0.18);
+  --divider-color: var(--comic-border-soft);
 }
 
 .wrapper.theme-comic {
@@ -1723,7 +1723,8 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
     linear-gradient(135deg, rgba(143, 136, 216, 0.08), transparent 42%),
     var(--glass-bg) !important;
   box-shadow:
-    0 16px 42px rgba(0, 0, 0, 0.32),
+    5px 5px 0 var(--comic-shadow),
+    0 18px 38px rgba(0, 0, 0, 0.28),
     inset 0 0 0 1px var(--comic-border-soft);
   font-family: Inter, "Segoe UI", system-ui, sans-serif;
 }
@@ -1735,7 +1736,9 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
     var(--bg-main);
   border: 2px solid var(--border-active);
   border-radius: 8px;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+  box-shadow:
+    3px 3px 0 var(--comic-shadow),
+    0 10px 26px rgba(0, 0, 0, 0.16);
 }
 
 .theme-comic .shortcut-item,
@@ -1747,7 +1750,9 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
     var(--comic-panel);
   border: 2px solid var(--border-active);
   border-radius: 6px;
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.26);
+  box-shadow:
+    3px 3px 0 var(--comic-shadow),
+    0 8px 18px rgba(0, 0, 0, 0.2);
 }
 
 .theme-light.theme-comic .shortcut-item,
@@ -1771,7 +1776,10 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   color: var(--text-main);
   padding-left: 18px;
   transform: translate(-1px, -1px);
-  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.22);
+  border-color: var(--comic-sticker-border);
+  box-shadow:
+    4px 4px 0 var(--comic-shadow),
+    0 10px 22px rgba(0, 0, 0, 0.2);
 }
 
 .theme-comic .shortcut-label,
@@ -1790,7 +1798,9 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
     linear-gradient(90deg, rgba(154, 216, 230, 0.08), transparent 64%),
     var(--comic-panel);
   border-radius: 6px;
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
+  box-shadow:
+    3px 3px 0 var(--comic-shadow),
+    0 8px 18px rgba(0, 0, 0, 0.16);
 }
 
 .theme-comic .settings-title {
@@ -1803,7 +1813,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   background: var(--comic-yellow);
   border: 2px solid var(--comic-sticker-border);
   border-radius: 4px;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
+  box-shadow: 3px 3px 0 var(--comic-shadow);
   text-transform: uppercase;
 }
 
@@ -1817,7 +1827,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 .theme-comic .storage-path-display {
   border: 2px solid var(--border-active);
   border-radius: 6px;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
+  box-shadow: 2px 2px 0 var(--comic-shadow);
 }
 
 .theme-comic .storage-path-button {
@@ -1829,15 +1839,15 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 .theme-comic .tab-item.active,
 .theme-comic .global-badge,
 .theme-comic .shortcut-keys kbd {
-  border: 2px solid var(--comic-sticker-border);
+  border: 2px solid var(--comic-border);
   border-radius: 4px;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.16);
+  box-shadow: 2px 2px 0 var(--comic-shadow);
 }
 
 .theme-comic .global-badge,
 .theme-comic .shortcut-keys kbd {
-  color: var(--comic-ink);
-  background: var(--comic-yellow);
+  color: var(--text-secondary);
+  background: var(--comic-panel-raised);
   font-weight: 900;
 }
 
@@ -1871,11 +1881,16 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 
 .theme-comic .tab-add:hover,
 .theme-comic .top-icons button:hover,
-.theme-comic .top-icons button.active,
 .theme-comic .resize-handle:hover {
+  background: var(--comic-panel-raised);
+  border-color: var(--comic-border);
+  box-shadow: 2px 2px 0 var(--comic-shadow);
+}
+
+.theme-comic .top-icons button.active {
   background: var(--comic-yellow);
   border-color: var(--comic-sticker-border);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+  box-shadow: 3px 3px 0 var(--comic-shadow);
 }
 
 .theme-comic .active-indicator {
@@ -1883,7 +1898,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   width: 5px;
   background: var(--comic-pink);
   border: 2px solid var(--comic-sticker-border);
-  box-shadow: 0 0 12px rgba(207, 127, 164, 0.22);
+  box-shadow: 2px 2px 0 var(--comic-shadow);
 }
 
 .theme-comic .tooltip,
@@ -1892,7 +1907,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   background: var(--comic-yellow);
   border: 2px solid var(--comic-sticker-border);
   border-radius: 4px;
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.22);
+  box-shadow: 3px 3px 0 var(--comic-shadow);
   font-weight: 900;
 }
 
@@ -1914,7 +1929,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   border: 2px solid var(--comic-sticker-border);
   border-radius: 4px;
   padding: 2px 10px;
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.2);
+  box-shadow: 3px 3px 0 var(--comic-shadow);
   font-weight: 900;
 }
 
@@ -1928,7 +1943,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   background: var(--comic-mint);
   border: 2px solid var(--comic-sticker-border);
   border-radius: 4px;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.18);
+  box-shadow: 2px 2px 0 var(--comic-shadow);
 }
 
 .theme-comic .prose-mirror-editor th,
