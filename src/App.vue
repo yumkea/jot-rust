@@ -55,6 +55,7 @@ const activeNoteId = ref('')
 const selectedText = ref('')
 const activeSettingsTab = ref('general')
 const theme = ref('dark')
+const themeStyle = ref('classic')
 const DEFAULT_ACCENT_COLOR = '#13b2ed'
 const accentColor = ref(DEFAULT_ACCENT_COLOR)
 const isAutoLaunch = ref(false)
@@ -161,6 +162,9 @@ onMounted(async () => {
     settings = await api.getSettings()
     if (settings.theme) {
       theme.value = settings.theme
+    }
+    if (settings.themeStyle) {
+      themeStyle.value = settings.themeStyle
     }
 
     // 加载主题色设置
@@ -732,6 +736,11 @@ const toggleTheme = async (): Promise<void> => {
   await api.saveSetting('theme', theme.value)
 }
 
+const toggleThemeStyle = async (): Promise<void> => {
+  themeStyle.value = themeStyle.value === 'classic' ? 'comic' : 'classic'
+  await api.saveSetting('themeStyle', themeStyle.value)
+}
+
 /**
  * 将 hex 颜色转为 r,g,b 字符串
  */
@@ -847,13 +856,14 @@ const activeCharCount = computed(() => countChars(activeNote.value?.content || '
 const selectedCharCount = computed(() => countChars(selectedText.value))
 
 // 同步主题类到 html 元素，使 Teleport 到 body 的元素也能继承主题变量
-watch(theme, (newTheme) => {
+watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   document.documentElement.classList.toggle('theme-light', newTheme === 'light')
+  document.documentElement.classList.toggle('theme-comic', newThemeStyle === 'comic')
 }, { immediate: true })
 </script>
 
 <template>
-    <div class="wrapper glass border-glow" :class="`theme-${theme}`">
+    <div class="wrapper glass border-glow" :class="[`theme-${theme}`, `theme-${themeStyle}`]">
     <!-- 背景/边框感应区 -->
     <ResizeSensors :on-resize="startResize" :on-reset="resetSize" />
 
@@ -985,6 +995,12 @@ watch(theme, (newTheme) => {
               <span class="shortcut-label">{{ t('settings.theme') }}</span>
               <div class="shortcut-group">
                 <span class="global-badge">{{ theme === 'dark' ? t('settings.theme.dark') : t('settings.theme.light') }}</span>
+              </div>
+            </div>
+            <div class="shortcut-item" @click="toggleThemeStyle">
+              <span class="shortcut-label">{{ t('settings.themeStyle') }}</span>
+              <div class="shortcut-group">
+                <span class="global-badge">{{ themeStyle === 'classic' ? t('settings.themeStyle.classic') : t('settings.themeStyle.comic') }}</span>
               </div>
             </div>
             <div class="shortcut-item accent-color-item">
@@ -1632,6 +1648,76 @@ watch(theme, (newTheme) => {
   --icon-active-filter: invert(41%) sepia(91%) saturate(1352%) hue-rotate(160deg) brightness(95%) contrast(95%); /* Darker blue */
   --tab-active-bg: rgba(0, 0, 0, 0.05);
   --divider-color: rgba(0, 0, 0, 0.1);
+}
+
+:root.theme-comic,
+.theme-comic {
+  --bg-main: #171717;
+  --text-main: #fff8d8;
+  --text-secondary: rgba(255, 248, 216, 0.88);
+  --text-low: rgba(255, 248, 216, 0.48);
+  --text-quote: rgba(255, 248, 216, 0.3);
+  --border-color: rgba(255, 221, 87, 0.16);
+  --border-active: rgba(255, 221, 87, 0.42);
+  --hover-bg: rgba(255, 221, 87, 0.12);
+  --recording-bg: rgba(255, 221, 87, 0.14);
+  --overlay-bg: rgba(23, 23, 23, 0.9);
+  --kbd-bg: rgba(255, 248, 216, 0.12);
+  --glass-bg: rgba(23, 23, 23, 0.78);
+  --glass-border: rgba(255, 221, 87, 0.72);
+  --tab-active-bg: rgba(255, 221, 87, 0.16);
+  --divider-color: rgba(255, 221, 87, 0.35);
+}
+
+:root.theme-light.theme-comic,
+.theme-light.theme-comic {
+  --bg-main: #fff7cf;
+  --text-main: #201712;
+  --text-secondary: rgba(32, 23, 18, 0.86);
+  --text-low: rgba(32, 23, 18, 0.52);
+  --text-quote: rgba(32, 23, 18, 0.34);
+  --border-color: rgba(32, 23, 18, 0.16);
+  --border-active: rgba(32, 23, 18, 0.38);
+  --hover-bg: rgba(255, 112, 67, 0.13);
+  --recording-bg: rgba(255, 112, 67, 0.14);
+  --overlay-bg: rgba(255, 247, 207, 0.92);
+  --kbd-bg: rgba(32, 23, 18, 0.08);
+  --glass-bg: rgba(255, 247, 207, 0.82);
+  --glass-border: rgba(32, 23, 18, 0.44);
+  --tab-active-bg: rgba(255, 112, 67, 0.16);
+  --divider-color: rgba(32, 23, 18, 0.22);
+}
+
+.wrapper.theme-comic {
+  border-width: 2px !important;
+  box-shadow:
+    4px 4px 0 rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(var(--accent-rgb), 0.28);
+}
+
+.theme-comic .main-container,
+.theme-comic .sidebar-wrapper {
+  border: 2px solid var(--border-active);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.32);
+}
+
+.theme-comic .shortcut-item,
+.theme-comic .storage-card,
+.theme-comic .context-menu,
+.theme-comic .slash-menu {
+  border-width: 2px;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.28);
+}
+
+.theme-comic .tab-item.active,
+.theme-comic .global-badge,
+.theme-comic .shortcut-keys kbd {
+  border-width: 2px;
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.24);
+}
+
+.theme-comic .prose-mirror-editor {
+  font-family: "Comic Sans MS", "Segoe Print", "Trebuchet MS", sans-serif;
 }
 
 .wrapper.glass {
