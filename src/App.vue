@@ -1825,7 +1825,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 }
 
 .theme-comic .storage-card {
-  background: var(--comic-mint);
+  background: var(--comic-panel);
 }
 
 .theme-comic .storage-path-button,
