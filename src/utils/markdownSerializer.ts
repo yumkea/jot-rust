@@ -39,6 +39,14 @@ const serializeInline = (node: JSONContent): string => {
   return (node.content ?? []).map(serializeInline).join('')
 }
 
+const serializePlainInline = (node: JSONContent): string => {
+  if (node.type === 'text') return node.text ?? ''
+  if (node.type === 'hardBreak') return '\n'
+  if (node.type === 'inlineMath') return node.attrs?.latex ?? ''
+
+  return (node.content ?? []).map(serializePlainInline).join('')
+}
+
 const serializeListItem = (node: JSONContent, marker: string, indent: string): string => {
   const lines = (node.content ?? []).map((child) => serializeBlock(child, `${indent}  `)).filter(Boolean)
   if (lines.length === 0) return `${indent}${marker} `
@@ -129,6 +137,42 @@ const serializeBlock = (node: JSONContent, indent = ''): string => {
   return content.map((child) => serializeBlock(child, indent)).join('\n\n')
 }
 
+const serializePlainTable = (node: JSONContent): string => {
+  return (node.content ?? [])
+    .filter((row) => row.type === 'tableRow')
+    .map((row) =>
+      (row.content ?? [])
+        .map((cell) =>
+          (cell.content ?? [])
+            .map((child) => serializePlainBlock(child))
+            .join(' ')
+            .trim()
+        )
+        .join('\t')
+    )
+    .join('\n')
+}
+
+const serializePlainListItem = (node: JSONContent): string => {
+  return (node.content ?? []).map((child) => serializePlainBlock(child)).filter(Boolean).join('\n')
+}
+
+const serializePlainBlock = (node: JSONContent): string => {
+  const content = node.content ?? []
+
+  if (node.type === 'paragraph' || node.type === 'heading') return content.map(serializePlainInline).join('')
+  if (node.type === 'blockquote') return content.map(serializePlainBlock).filter(Boolean).join('\n')
+  if (node.type === 'codeBlock') return content.map((child) => child.text ?? '').join('')
+  if (node.type === 'bulletList' || node.type === 'orderedList' || node.type === 'taskList') {
+    return content.map(serializePlainListItem).filter(Boolean).join('\n')
+  }
+  if (node.type === 'table') return serializePlainTable(node)
+  if (node.type === 'blockMath') return node.attrs?.latex ?? ''
+  if (node.type === 'horizontalRule') return ''
+
+  return content.map(serializePlainBlock).filter(Boolean).join('\n')
+}
+
 export const editorJsonToMarkdown = (json: JSONContent | null | undefined): string => {
   if (!json || json.type !== 'doc') return ''
   const blocks = (json.content ?? []).map((node) => serializeBlock(node)).filter(Boolean)
@@ -137,6 +181,6 @@ export const editorJsonToMarkdown = (json: JSONContent | null | undefined): stri
 
 export const editorJsonToClipboardText = (json: JSONContent | null | undefined): string => {
   if (!json || json.type !== 'doc') return ''
-  const blocks = (json.content ?? []).map((node) => serializeBlock(node)).filter(Boolean)
+  const blocks = (json.content ?? []).map((node) => serializePlainBlock(node)).filter(Boolean)
   return blocks.join('\n').trimEnd()
 }

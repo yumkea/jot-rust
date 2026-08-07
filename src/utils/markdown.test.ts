@@ -103,6 +103,30 @@ describe('markdown pipeline', () => {
     expect(editorJsonToClipboardText(json)).toBe('line one\nline two\nline three')
   })
 
+  it('serializes clipboard text as plain text without markdown escapes', () => {
+    const json = {
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: '1 + 2 + 3' },
+            { type: 'hardBreak' },
+            { type: 'text', text: 'a_b * c' }
+          ]
+        },
+        {
+          type: 'heading',
+          attrs: { level: 2 },
+          content: [{ type: 'text', text: 'Title #1' }]
+        }
+      ]
+    }
+
+    expect(editorJsonToMarkdown(json)).toBe('1 \\+ 2 \\+ 3  \na\\_b \\* c\n\n## Title \\#1')
+    expect(editorJsonToClipboardText(json)).toBe('1 + 2 + 3\na_b * c\nTitle #1')
+  })
+
   it('keeps bare urls and file-like names as plain text', () => {
     const html = normalizeContentForEditor('pingkey.zip\n\ngithub.com\n\nhttps://pingkey.zip')
 
