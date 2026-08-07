@@ -1652,60 +1652,60 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 
 :root.theme-comic,
 .theme-comic {
-  --comic-ink: #050505;
-  --comic-paper: #17120f;
-  --comic-panel: #241b16;
-  --comic-panel-raised: #30241b;
-  --comic-yellow: #ffd84d;
-  --comic-orange: #ff7a3d;
-  --comic-cyan: #22d3ee;
-  --comic-mint: #77f2a1;
-  --comic-pink: #ff5fa2;
+  --comic-ink: #070b12;
+  --comic-paper: #101318;
+  --comic-panel: #181d24;
+  --comic-panel-raised: #222936;
+  --comic-yellow: #63e6ff;
+  --comic-orange: #ff6b8a;
+  --comic-cyan: #8b5cf6;
+  --comic-mint: #4ade80;
+  --comic-pink: #ff4d8d;
   --comic-shadow: rgba(0, 0, 0, 0.72);
   --bg-main: var(--comic-paper);
-  --text-main: #fff3cf;
-  --text-secondary: rgba(255, 243, 207, 0.88);
-  --text-low: rgba(255, 243, 207, 0.52);
-  --text-quote: rgba(255, 216, 77, 0.42);
-  --border-color: rgba(255, 216, 77, 0.2);
-  --border-active: #ffd84d;
-  --hover-bg: rgba(255, 216, 77, 0.13);
-  --recording-bg: rgba(255, 122, 61, 0.16);
-  --overlay-bg: rgba(23, 18, 15, 0.94);
-  --kbd-bg: rgba(255, 243, 207, 0.1);
-  --glass-bg: rgba(23, 18, 15, 0.88);
-  --glass-border: #ffd84d;
-  --tab-active-bg: rgba(255, 216, 77, 0.18);
-  --divider-color: rgba(255, 216, 77, 0.38);
+  --text-main: #eaf6ff;
+  --text-secondary: rgba(234, 246, 255, 0.86);
+  --text-low: rgba(234, 246, 255, 0.5);
+  --text-quote: rgba(99, 230, 255, 0.42);
+  --border-color: rgba(99, 230, 255, 0.18);
+  --border-active: #63e6ff;
+  --hover-bg: rgba(99, 230, 255, 0.12);
+  --recording-bg: rgba(255, 107, 138, 0.16);
+  --overlay-bg: rgba(16, 19, 24, 0.94);
+  --kbd-bg: rgba(234, 246, 255, 0.09);
+  --glass-bg: rgba(16, 19, 24, 0.9);
+  --glass-border: #63e6ff;
+  --tab-active-bg: rgba(99, 230, 255, 0.16);
+  --divider-color: rgba(99, 230, 255, 0.34);
 }
 
 :root.theme-light.theme-comic,
 .theme-light.theme-comic {
-  --comic-ink: #160f0a;
-  --comic-paper: #fff2bd;
-  --comic-panel: #ffe8a6;
-  --comic-panel-raised: #fff8d8;
-  --comic-yellow: #ffd43b;
-  --comic-orange: #ff6b35;
-  --comic-cyan: #00a6c8;
-  --comic-mint: #20b66d;
-  --comic-pink: #e6397a;
-  --comic-shadow: rgba(22, 15, 10, 0.32);
+  --comic-ink: #13151a;
+  --comic-paper: #f4efe7;
+  --comic-panel: #ebe4dc;
+  --comic-panel-raised: #fffaf2;
+  --comic-yellow: #00bcd4;
+  --comic-orange: #f06449;
+  --comic-cyan: #6d5dfc;
+  --comic-mint: #1ea672;
+  --comic-pink: #d92f72;
+  --comic-shadow: rgba(19, 21, 26, 0.28);
   --bg-main: var(--comic-paper);
-  --text-main: #160f0a;
-  --text-secondary: rgba(22, 15, 10, 0.86);
-  --text-low: rgba(22, 15, 10, 0.54);
-  --text-quote: rgba(22, 15, 10, 0.36);
-  --border-color: rgba(22, 15, 10, 0.18);
-  --border-active: #160f0a;
-  --hover-bg: rgba(255, 107, 53, 0.16);
-  --recording-bg: rgba(255, 107, 53, 0.16);
-  --overlay-bg: rgba(255, 248, 216, 0.96);
-  --kbd-bg: rgba(22, 15, 10, 0.08);
-  --glass-bg: rgba(255, 242, 189, 0.9);
-  --glass-border: #160f0a;
-  --tab-active-bg: rgba(255, 107, 53, 0.18);
-  --divider-color: rgba(22, 15, 10, 0.28);
+  --text-main: #13151a;
+  --text-secondary: rgba(19, 21, 26, 0.84);
+  --text-low: rgba(19, 21, 26, 0.52);
+  --text-quote: rgba(19, 21, 26, 0.36);
+  --border-color: rgba(19, 21, 26, 0.16);
+  --border-active: #13151a;
+  --hover-bg: rgba(0, 188, 212, 0.16);
+  --recording-bg: rgba(240, 100, 73, 0.16);
+  --overlay-bg: rgba(255, 250, 242, 0.96);
+  --kbd-bg: rgba(19, 21, 26, 0.08);
+  --glass-bg: rgba(244, 239, 231, 0.9);
+  --glass-border: #13151a;
+  --tab-active-bg: rgba(0, 188, 212, 0.18);
+  --divider-color: rgba(19, 21, 26, 0.26);
 }
 
 .wrapper.theme-comic {
@@ -1713,8 +1713,8 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   border: 3px solid var(--glass-border) !important;
   border-radius: 8px;
   background:
-    radial-gradient(circle at 1px 1px, rgba(255, 216, 77, 0.2) 1px, transparent 0) 0 0 / 10px 10px,
-    linear-gradient(135deg, rgba(255, 122, 61, 0.18), transparent 38%),
+    radial-gradient(circle at 1px 1px, rgba(99, 230, 255, 0.16) 1px, transparent 0) 0 0 / 10px 10px,
+    linear-gradient(135deg, rgba(255, 107, 138, 0.14), transparent 38%),
     var(--glass-bg) !important;
   box-shadow:
     6px 6px 0 var(--comic-shadow),
@@ -1725,7 +1725,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 .theme-comic .main-container,
 .theme-comic .sidebar-wrapper {
   background:
-    linear-gradient(180deg, rgba(255, 216, 77, 0.045), transparent 28%),
+    linear-gradient(180deg, rgba(99, 230, 255, 0.04), transparent 28%),
     var(--bg-main);
   border: 3px solid var(--border-active);
   border-radius: 8px;
@@ -1737,7 +1737,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 .theme-comic .context-menu,
 .theme-comic .slash-menu {
   background:
-    linear-gradient(135deg, rgba(255, 216, 77, 0.08), transparent 44%),
+    linear-gradient(135deg, rgba(99, 230, 255, 0.08), transparent 44%),
     var(--comic-panel);
   border: 2px solid var(--border-active);
   border-radius: 6px;
@@ -1749,7 +1749,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 .theme-light.theme-comic .context-menu,
 .theme-light.theme-comic .slash-menu {
   background:
-    linear-gradient(135deg, rgba(255, 107, 53, 0.12), transparent 48%),
+    linear-gradient(135deg, rgba(0, 188, 212, 0.12), transparent 48%),
     var(--comic-panel-raised);
 }
 
@@ -1781,7 +1781,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   margin-bottom: 14px;
   border-bottom: 3px solid var(--border-active);
   background:
-    linear-gradient(90deg, rgba(255, 216, 77, 0.14), transparent 64%),
+    linear-gradient(90deg, rgba(99, 230, 255, 0.14), transparent 64%),
     var(--comic-panel);
   border-radius: 6px;
   box-shadow: 3px 3px 0 var(--comic-shadow);
@@ -1803,7 +1803,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 
 .theme-comic .storage-card {
   background:
-    radial-gradient(circle at 2px 2px, rgba(255, 216, 77, 0.18) 1px, transparent 0) 0 0 / 8px 8px,
+    radial-gradient(circle at 2px 2px, rgba(99, 230, 255, 0.14) 1px, transparent 0) 0 0 / 8px 8px,
     var(--comic-panel);
 }
 
@@ -1852,7 +1852,7 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
 .theme-comic .title-bar {
   border-bottom: 2px solid var(--divider-color);
   background:
-    linear-gradient(90deg, rgba(255, 216, 77, 0.1), transparent 58%),
+    linear-gradient(90deg, rgba(99, 230, 255, 0.1), transparent 58%),
     var(--bg-main);
 }
 
@@ -1896,8 +1896,8 @@ watch([theme, themeStyle], ([newTheme, newThemeStyle]) => {
   font-weight: 650;
   letter-spacing: 0;
   background:
-    linear-gradient(rgba(255, 216, 77, 0.055) 1px, transparent 1px) 0 0 / 100% 28px,
-    radial-gradient(circle at 1px 1px, rgba(255, 216, 77, 0.16) 1px, transparent 0) 0 0 / 12px 12px;
+    linear-gradient(rgba(99, 230, 255, 0.045) 1px, transparent 1px) 0 0 / 100% 28px,
+    radial-gradient(circle at 1px 1px, rgba(99, 230, 255, 0.12) 1px, transparent 0) 0 0 / 12px 12px;
 }
 
 .theme-comic .prose-mirror-editor h1,
