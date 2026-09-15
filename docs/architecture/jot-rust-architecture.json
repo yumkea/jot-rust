@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Jot 桌面笔记应用架构",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [960, 580],
+    "repository": {
+      "url": "https://github.com/yumkea/jot-rust",
+      "provider": "github",
+      "revision": "c6065f0fe534a07d1475011f8ed9f3ef639caa4a"
+    }
+  },
+  "layout": {
+    "mode": "grid",
+    "origin": [45, 70],
+    "cols": 4,
+    "gapX": 45,
+    "gapY": 75,
+    "cellW": 180,
+    "cellH": 92
+  },
+  "components": [
+    {
+      "id": "user",
+      "type": "external",
+      "label": "用户",
+      "sublabel": "桌面端交互",
+      "row": 1,
+      "col": 0
+    },
+    {
+      "id": "vue-ui",
+      "type": "frontend",
+      "label": "Vue 3 应用界面",
+      "sublabel": "App.vue 与笔记功能组件",
+      "row": 1,
+      "col": 1,
+      "sources": [{"path": "src/main.ts", "line": 1, "end_line": 6, "label": "前端入口"}, {"path": "src/App.vue", "line": 1, "end_line": 12, "label": "主界面依赖"}]
+    },
+    {
+      "id": "editor",
+      "type": "frontend",
+      "label": "Tiptap 富文本编辑器",
+      "sublabel": "Markdown 转换与排版扩展",
+      "row": 0,
+      "col": 1,
+      "sources": [{"path": "src/components/NoteEditor.vue", "line": 1, "end_line": 13, "label": "编辑器依赖"}, {"path": "src/components/NoteEditor.vue", "line": 205, "end_line": 209, "label": "编辑器初始化"}]
+    },
+    {
+      "id": "invoke-api",
+      "type": "frontend",
+      "label": "Tauri Invoke API",
+      "sublabel": "类型化前端调用封装",
+      "row": 2,
+      "col": 1,
+      "sources": [{"path": "src/api.ts", "line": 1, "end_line": 79, "label": "命令调用封装"}]
+    },
+    {
+      "id": "tauri-core",
+      "type": "backend",
+      "label": "Tauri / Rust 命令层",
+      "sublabel": "应用状态、笔记与设置命令",
+      "row": 1,
+      "col": 2,
+      "sources": [{"path": "src-tauri/src/main.rs", "line": 47, "end_line": 102, "label": "应用状态初始化"}, {"path": "src-tauri/src/main.rs", "line": 1025, "end_line": 1046, "label": "命令注册"}]
+    },
+    {
+      "id": "native-services",
+      "type": "backend",
+      "label": "原生桌面服务",
+      "sublabel": "托盘、窗口与快捷键",
+      "row": 0,
+      "col": 2,
+      "sources": [{"path": "src-tauri/src/main.rs", "line": 724, "end_line": 760, "label": "系统托盘"}, {"path": "src-tauri/src/main.rs", "line": 980, "end_line": 989, "label": "Tauri 插件注册"}]
+    },
+    {
+      "id": "markdown-files",
+      "type": "database",
+      "label": "Markdown 笔记目录",
+      "sublabel": "带 Frontmatter 的 .md 文件",
+      "row": 1,
+      "col": 3,
+      "sources": [{"path": "src-tauri/src/main.rs", "line": 455, "end_line": 510, "label": "笔记读写与删除"}]
+    },
+    {
+      "id": "settings-db",
+      "type": "database",
+      "label": "SQLite 设置库",
+      "sublabel": "rusqlite，保存应用设置",
+      "row": 2,
+      "col": 3,
+      "sources": [{"path": "src-tauri/src/main.rs", "line": 516, "end_line": 558, "label": "设置查询与保存"}, {"path": "src-tauri/Cargo.toml", "line": 16, "end_line": 24, "label": "Rust 依赖"}]
+    },
+    {
+      "id": "legacy-db",
+      "type": "external",
+      "label": "旧版 SQLite 笔记库",
+      "sublabel": "用户选择后只读迁移",
+      "row": 2,
+      "col": 2,
+      "sources": [{"path": "src-tauri/src/main.rs", "line": 616, "end_line": 639, "label": "旧库迁移"}]
+    }
+  ],
+  "boundaries": [
+    {"kind": "region", "label": "WebView 前端", "wraps": ["vue-ui", "editor", "invoke-api"], "pad": 28},
+    {"kind": "region", "label": "Tauri 原生层", "wraps": ["tauri-core", "native-services"], "pad": 28}
+  ],
+  "connections": [
+    {"id": "user-to-ui", "from": "user", "to": "vue-ui", "label": "编辑与管理笔记", "variant": "emphasis"},
+    {"id": "ui-to-editor", "from": "vue-ui", "to": "editor", "label": "编辑内容", "fromSide": "top", "toSide": "bottom"},
+    {"id": "ui-to-api", "from": "vue-ui", "to": "invoke-api", "label": "笔记与设置操作", "fromSide": "bottom", "toSide": "top", "labelDy": 24},
+    {"id": "api-to-core", "from": "invoke-api", "to": "tauri-core", "label": "Tauri invoke", "variant": "emphasis", "fromSide": "right", "toSide": "bottom", "labelAt": [430, 350]},
+    {"id": "core-to-native", "from": "tauri-core", "to": "native-services", "label": "窗口与系统集成", "fromSide": "top", "toSide": "bottom"},
+    {"id": "core-to-notes", "from": "tauri-core", "to": "markdown-files", "label": "读取、保存、删除 .md", "variant": "emphasis"},
+    {"id": "core-to-settings", "from": "tauri-core", "to": "settings-db", "label": "读取与保存设置", "fromSide": "bottom", "toSide": "left"},
+    {"id": "legacy-to-core", "from": "legacy-db", "to": "tauri-core", "label": "选择后只读迁移", "variant": "dashed", "fromSide": "top", "toSide": "bottom"}
+  ]
+}

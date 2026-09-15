@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Jot 笔记数据流",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [960, 520]
+  },
+  "stages": [
+    {"label": "输入"},
+    {"label": "编辑"},
+    {"label": "应用桥接"},
+    {"label": "本地持久化"}
+  ],
+  "nodes": [
+    {"id": "user", "type": "external", "label": "用户", "sublabel": "输入与操作", "stage": 0, "row": 1},
+    {"id": "legacy-db", "type": "external", "label": "旧版 SQLite", "sublabel": "用户选择导入", "stage": 0, "row": 2},
+    {"id": "vue-ui", "type": "frontend", "label": "Vue 3 界面", "sublabel": "笔记与设置操作", "stage": 1, "row": 1},
+    {"id": "editor", "type": "frontend", "label": "Tiptap 编辑器", "sublabel": "富文本内容", "stage": 1, "row": 0},
+    {"id": "invoke-api", "type": "frontend", "label": "Tauri Invoke API", "sublabel": "命令调用封装", "stage": 2, "row": 0},
+    {"id": "rust-commands", "type": "backend", "label": "Rust 命令层", "sublabel": "笔记、设置与迁移", "stage": 2, "row": 1},
+    {"id": "markdown-files", "type": "database", "label": "Markdown 笔记", "sublabel": "含 Frontmatter 的 .md", "stage": 3, "row": 1},
+    {"id": "settings-db", "type": "database", "label": "SQLite 设置库", "sublabel": "应用偏好设置", "stage": 3, "row": 2}
+  ],
+  "flows": [
+    {"id": "user-to-ui", "from": "user", "to": "vue-ui", "label": "笔记内容与操作", "classification": "用户输入"},
+    {"id": "ui-to-editor", "from": "vue-ui", "to": "editor", "label": "编辑内容", "classification": "富文本", "labelAt": [315, 314]},
+    {"id": "ui-to-invoke", "from": "vue-ui", "to": "invoke-api", "label": "笔记与设置请求", "classification": "前端调用"},
+    {"id": "invoke-to-rust", "from": "invoke-api", "to": "rust-commands", "label": "Tauri invoke", "classification": "命令参数", "labelAt": [530, 200]},
+    {"id": "notes-write", "from": "rust-commands", "to": "markdown-files", "label": "读取、保存、删除 .md", "classification": "笔记数据", "labelAt": [638, 220]},
+    {"id": "settings-write", "from": "rust-commands", "to": "settings-db", "label": "读取与保存设置", "classification": "应用配置", "labelAt": [720, 340]},
+    {"id": "legacy-import", "from": "legacy-db", "to": "rust-commands", "label": "只读迁移为 Markdown", "classification": "旧版笔记", "variant": "dashed", "fromSide": "bottom", "toSide": "bottom", "via": [[100, 450], [530, 450]]}
+  ]
+}

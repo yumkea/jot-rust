@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "Jot 笔记生命周期",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [960, 566]
+  },
+  "lanes": [
+    {"id": "main", "label": "笔记主路径"},
+    {"id": "recovery", "label": "异常恢复"}
+  ],
+  "states": [
+    {"id": "opened", "type": "start", "label": "新建或打开", "sublabel": "选中笔记或创建笔记", "lane": "main", "col": 0, "step": "01"},
+    {"id": "editing", "type": "active", "label": "编辑中", "sublabel": "Tiptap 更新内容", "lane": "main", "col": 1, "step": "02"},
+    {"id": "saving", "type": "active", "label": "提交保存", "sublabel": "调用 save_note", "lane": "main", "col": 2, "step": "03"},
+    {"id": "stored", "type": "success", "label": "已持久化", "sublabel": "写入 Markdown 与 Frontmatter", "lane": "main", "col": 3, "step": "04"},
+    {"id": "deleted", "type": "success", "label": "已删除", "sublabel": "删除对应 .md 文件", "lane": "main", "col": 4, "step": "05"},
+    {"id": "save-failed", "type": "failure", "label": "保存失败", "sublabel": "命令返回错误", "lane": "recovery", "col": 0}
+  ],
+  "transitions": [
+    {"id": "open-to-edit", "from": "opened", "to": "editing"},
+    {"id": "edit-to-save", "from": "editing", "to": "saving"},
+    {"id": "save-to-stored", "from": "saving", "to": "stored", "variant": "emphasis"},
+    {"id": "stored-to-deleted", "from": "stored", "to": "deleted"},
+    {"id": "save-failure", "from": "saving", "to": "save-failed", "variant": "security"},
+    {"id": "retry-save", "from": "save-failed", "to": "saving", "label": "重试保存", "variant": "emphasis", "labelDx": 80}
+  ]
+}

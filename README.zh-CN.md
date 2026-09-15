@@ -1,121 +1,154 @@
+# Jot
+
 <p align="center">
-  <img src="./assets/logo.ico" width="56" height="56" alt="Jot Logo">
+  <img src="./resources/jot.svg" width="72" height="72" alt="Jot logo">
+</p>
+
+<p align="center">轻量、本地优先的桌面笔记应用，用于快速捕捉想法、任务和灵感。</p>
+
+<p align="center">
+  <a href="./README.md">English</a> ·
+  <a href="https://github.com/yumkea/jot-rust/releases">发行版本</a> ·
+  <a href="https://github.com/yumkea/jot-rust/issues">问题反馈</a> ·
+  <a href="./LICENSE">GPL-3.0</a>
 </p>
 
 <p align="center">
-  捕捉灵光一现，轻量优雅的桌面笔记应用
+  <img src="https://img.shields.io/badge/Tauri-2.x-24c8db?style=flat-square" alt="Tauri 2">
+  <img src="https://img.shields.io/badge/Vue-3-42b883?style=flat-square" alt="Vue 3">
+  <img src="https://img.shields.io/badge/TypeScript-5-3178c6?style=flat-square" alt="TypeScript 5">
+  <img src="https://img.shields.io/badge/License-GPL--3.0-4f46e5?style=flat-square" alt="GPL-3.0">
 </p>
+
+## Jot 是什么？
+
+Jot 是一个专注于快速记录的浮动笔记窗口。它以 Vue 构建编辑体验、以 Tauri/Rust 提供桌面能力；笔记内容保存在本地 Markdown 文件中，SQLite 仅用于保存应用偏好设置。
+
+- 通过全局快捷键和轻量窗口快速记录。
+- 使用 Tiptap 编写富文本、Markdown 友好的笔记。
+- 每篇笔记都保存为带 Frontmatter 元数据的 `.md` 文件，便于迁移和备份。
+- 提供托盘、窗口操作、文件选择和可配置快捷键等原生桌面功能。
 
 <p align="center">
-  <a href="./README.md">English README</a>
-  ·
-  <a href="https://github.com/yumkea/jot/releases">Releases</a>
+  <img src="./assets/main_window.png" width="42%" alt="Jot 浅色界面">
+  <img src="./assets/main_window_white.png" width="42%" alt="Jot 深色界面">
 </p>
+
+## 功能
+
+- 笔记创建、搜索、历史记录、大纲导航和笔记设置。
+- 基于 Tiptap 的富文本编辑与 Markdown 转换。
+- 表格、任务列表、KaTeX 公式、代码块和常用格式快捷键。
+- 使用 `id`、`title`、`created_at`、`updated_at` Frontmatter 持久化笔记。
+- 支持自定义笔记目录，并可从旧版 SQLite 笔记库导入。
+- 集成 Tauri 原生托盘、窗口、对话框和全局快捷键能力。
 
 <p align="center">
-  <a href="./LICENSE">
-    <img src="https://img.shields.io/badge/License-GPL--3.0-4f46e5?style=flat-square" alt="License: GPL-3.0">
-  </a>
-  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-16a34a?style=flat-square" alt="Platform">
+  <img src="./assets/task_table_latex.png" width="42%" alt="任务表格和 LaTeX 编辑">
+  <img src="./assets/outline.png" width="42%" alt="笔记大纲导航">
 </p>
 
+## 架构与设计文档
+
+以下图表经过代码证据核验与桌面浏览器检查。PNG 预览可直接在 GitHub 查看；打开链接的 HTML 文件可在本地使用主题切换、缩放、搜索和关系追踪。
+
+### 系统架构
+
+[打开交互式系统架构图](./docs/architecture/jot-rust-architecture.html)
+
+<a href="./docs/architecture/jot-rust-architecture.html">
+  <img src="./docs/architecture/jot-rust-architecture.visual-check.1440x900.light.png" alt="Jot 系统架构图">
+</a>
+
+### 笔记数据流
+
+[打开交互式数据流图](./docs/architecture/jot-rust-dataflow.html)
+
+<a href="./docs/architecture/jot-rust-dataflow.html">
+  <img src="./docs/architecture/jot-rust-dataflow.visual-check.1440x900.light.png" alt="Jot 笔记数据流图">
+</a>
+
+### 笔记生命周期
+
+[打开交互式生命周期图](./docs/architecture/jot-rust-note-lifecycle.html)
+
+<a href="./docs/architecture/jot-rust-note-lifecycle.html">
+  <img src="./docs/architecture/jot-rust-note-lifecycle.visual-check.1440x900.light.png" alt="Jot 笔记生命周期图">
+</a>
+
+图表规格与 HTML 成品位于 [`docs/architecture`](./docs/architecture)。
+
+## 笔记存储格式
+
+笔记会写入用户可配置目录中的 Markdown 文件：
+
+```markdown
+---
+id: "..."
+title: "..."
+created_at: 2026-07-02 10:00:00
+updated_at: 2026-07-02 10:30:00
 ---
 
-## ✨ Jot 是什么？
+你的笔记内容...
+```
 
-Jot 是一款极简浮动笔记应用，专为零摩擦捕捉灵感而设计。按下全局快捷键，一个精美的透明窗口就会出现在你的光标位置——输入你的想法，自动保存。
+应用设置（如笔记目录和快捷键）保存在独立的本地 SQLite 数据库中。已有 SQLite 笔记数据库可通过应用导入到 Markdown 目录。
 
-无需切换窗口，无需打开应用，只需**随手记下**。
+## 开始使用
 
-<p align="center">
-  <img src="./assets/main_window.png" width="38%" alt="main_window">&nbsp;<img src="./assets/main_window_white.png" width="38%" alt="main_window_white">
-</p>
+### 环境要求
 
-## 🎯 功能特性
+- Node.js 20.19+
+- npm
+- Rust stable
+- 平台相关的 [Tauri 前置依赖](https://v2.tauri.app/start/prerequisites/)
 
-### ⚡ 快速捕捉
-- **全局快捷键** —— 在任何地方按下 `Ctrl+J`（可自定义），Jot 就在你的光标旁出现
-- **浮动窗口** —— 精美的透明窗口，需要时可置顶显示
-- **自动保存** —— 无需担心丢失想法，一切自动保存
+### 本地开发
 
-<p align="center">
-  <img src="./assets/call_back.gif" width="70%" alt="call_back">
-</p>
+```bash
+git clone git@github.com:yumkea/jot-rust.git
+cd jot-rust
+npm install
+npm run tauri dev
+```
 
-### ✏️ 富文本编辑
-- **富文本编辑** —— 支持类 Markdown 快捷操作：标题、加粗、斜体、列表、代码块
-- **LaTeX 数学公式** —— 用熟悉的 `$E=mc^2$` 语法书写公式
-- **任务列表** —— 可交互的复选框，追踪你的待办事项
-- **表格** —— 通过直观的右键菜单创建和编辑表格
-- **斜杠命令** —— 输入 `/` 快速插入任务列表、表格等
+仅运行 Vite 前端：
 
-<p align="center">
-  <img src="./assets/task_table_latex.png" width="38%" alt="task_table_latex">&nbsp;<img src="./assets/task_table_latex_white.png" width="38%" alt="task_table_latex_white">
-</p>
+```bash
+npm run dev
+```
 
+开发服务器地址为 `http://localhost:1420`。
 
+## 常用命令
 
-### 📂 笔记管理
-- **多标签页** —— 同时编辑多个笔记
-- **笔记历史** —— 按日期分组浏览所有笔记（今天、昨天、……）
-- **文档大纲** —— 通过自动编号的大纲面板快速跳转到任意标题
-- **导出** —— 将笔记保存为 Markdown 或独立 HTML
+```bash
+npm run dev          # 启动 Vite
+npm run build        # 类型检查并构建前端
+npm test             # 运行 Vitest
+npm run tauri dev    # 启动桌面端开发环境
+npm run tauri build  # 构建桌面安装包
+```
 
-<p align="center">
-  <img src="./assets/outline.png" width="38%" alt="outline">&nbsp;<img src="./assets/outline_white.png" width="38%" alt="outline_white">
-</p>
+## 项目结构
 
-### 🎨 个性化配置
+```text
+src/                 Vue 界面、编辑器组件、组合式逻辑和 Tauri API 封装
+src-tauri/           Rust 命令、原生集成、存储和 Tauri 配置
+resources/           应用图标与资源生成脚本
+docs/architecture/   架构、数据流和生命周期图
+```
 
-- **深色 / 浅色主题** —— 一键切换
-- **主题色** —— 选择你喜欢的颜色，整个界面随之变化
-- **快捷键配置** —— 所有快捷键均可自定义，可选择哪些在全系统范围生效
-- **双语界面** —— 完整的中英文界面支持
-- **开机启动** —— 可选择随系统自动启动
+## 贡献
 
-### 💻 桌面集成
-- **系统托盘** —— 安静地常驻托盘，随时一键唤出
-- **多显示器** —— 在不同缩放比例的显示器间无缝切换
-- **关闭行为** —— 可选择隐藏到托盘或完全退出
+欢迎提交 Issue 和 Pull Request。提交前请运行：
 
-## 📦 下载安装
+```bash
+npm test
+npm run build
+```
 
-Jot 支持 **Windows**、**macOS** 和 **Linux**。
+## 许可证
 
-前往 [GitHub Releases](https://github.com/yumkea/jot/releases) 下载最新版本。
-
-或从源码构建
-
-## 🎨 设计理念
-
-Jot 围绕一个核心理念构建：**记下一个想法应该不超过 2 秒钟**。设计优先考虑：
-
-1. **最小摩擦** —— 全局快捷键在光标处唤出窗口，无需切换应用
-2. **视觉优雅** —— 毛玻璃透明窗口，丝滑动画
-3. **聚焦范围** —— 只做笔记；不做项目管理、不做文件夹、不做标签
-4. **原生体验** —— 系统托盘、开机启动、多显示器支持
-
-> *"Graceful stories originate in an unplanned jot."*
-
-## ⌨️ 快捷键
-
-| 操作 | 快捷键 |
-|------|--------|
-| 显示 / 隐藏 Jot | `Ctrl+J` |
-| 新建笔记 | `Ctrl+N` |
-| 保存笔记 | `Ctrl+S` |
-| 切换大纲 | `Ctrl+Shift+O` |
-| 切换历史 | `Ctrl+H` |
-| 置顶窗口 | `Ctrl+P` |
-
-所有快捷键均可自定义 —— 前往 **设置 => 快捷键** 打造属于你的操作方式。
-
-## 📄 许可证
-
-本项目基于 [GNU 通用公共许可证 v3.0](./LICENSE) 开源。
-
----
-
-<p align="center">
-  为那些思维速度超过整理速度的人，用心打造。
-</p>
+本项目使用 [GNU General Public License v3.0](./LICENSE) 许可证。
